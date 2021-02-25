@@ -7,12 +7,13 @@ def example_construct_cell_complex():
     bounds = np.array([[[0, 50, 0], [100, 50, 100]], [[0, 0, 50], [100, 50, 50]]])
     initial_bound = [[0, 0, 0], [100, 100, 100]]
 
-    cell_complex = CellComplex(planes, bounds, initial_bound=initial_bound)
+    cell_complex = CellComplex(planes, bounds, initial_bound=initial_bound, build_graph=True)
     cell_complex.prioritise_planes()
     cell_complex.construct()
     cell_complex.print_info()
     cell_complex.save_obj('../output/cells.obj')
     cell_complex.save_plm('../output/cells.plm')
+    cell_complex.draw_graph()
 
 
 if __name__ == '__main__':

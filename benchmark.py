@@ -31,7 +31,6 @@ def pipeline_hyperplane_arrangement(planes):
     The SageMath binaries can be downloaded from https://www.sagemath.org/download.html.
     The installation of it is documented at https://doc.sagemath.org/html/en/installation/.
     """
-
     # hyperplane arrangements and bounded region extraction
     logger.info('starting hyperplane arrangement')
     hyperplane_arrangement = HyperplaneArrangements(QQ, ('x', 'y', 'z'))
@@ -45,7 +44,7 @@ def pipeline_adaptive_binary_partition(planes, bounds, filename=None):
     Adaptive binary partition as implemented.
     """
     tik = time.time()
-    cell_complex = CellComplex(planes, bounds)
+    cell_complex = CellComplex(planes, bounds, build_graph=True)
     cell_complex.prioritise_planes()
     cell_complex.construct()
     cell_complex.print_info()

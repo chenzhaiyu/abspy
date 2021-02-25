@@ -6,23 +6,27 @@ Prerequisites:
 
 """
 
-import numpy as np
-from .logger import attach_to_log
-from tqdm import tqdm
 from pathlib import Path
-from random import random as random_
-from sage.all import *
+from random import random as random_  # todo: assign mtl to obj
+
+import numpy as np
+from tqdm import tqdm
+import networkx as nx
+from sage.all import polytopes, QQ, Polyhedron
+
+from .logger import attach_to_log
 
 logger = attach_to_log()
 
 
 class CellComplex:
 
-    def __init__(self, planes, bounds, initial_bound=None):
+    def __init__(self, planes, bounds, initial_bound=None, build_graph=False):
         """
         :param planes: plana parameters. N * 4 array.
         :param bounds: corresponding bounding box bounds of the planar primitives. N * 2 * 3 array.
         :param initial_bound: optional. initial bound to partition. 2 * 3 array or None.
+        :param build_graph: optional. build the cell adjacency graph if set True.
         """
         self.bounds = bounds  # numpy.array over RDF
         self.planes = planes  # numpy.array over RDF
@@ -33,11 +37,18 @@ class CellComplex:
         self.cells = [self._construct_initial_cell()]  # list of QQ
         self.cells_bounds = [self.cells[0].bounding_box()]  # list of QQ
 
+        if build_graph:
+            self.graph = nx.Graph()
+            self.graph.add_node(0)  # the initial cell
+            self.index_node = 0     # unique for every cell ever generated
+        else:
+            self.graph = None
+
         self.constructed = False
 
     def _construct_initial_cell(self):
         """
-        :return: trimesh object of the initial cell. a cuboid with 12 triangular facets.
+        :return: Polyhedron object of the initial cell. a cuboid with 12 triangular facets.
         """
         return polytopes.cube(
             intervals=[[self.initial_bound[0][i], self.initial_bound[1][i]] for i in range(3)]).change_ring(
@@ -120,6 +131,14 @@ class CellComplex:
         negative = [QQ(-element) for element in positive]
         return positive, negative
 
+    def _index_node_to_cell(self, query):
+        """
+        Convert index in the node list to that in the cell list.
+        The rationale behind is #nodes == #cells (when a primitive is settled down).
+        :param query: query index in the node list.
+        """
+        return list(self.graph.nodes).index(query)
+
     def construct(self):
         """
         Two-stage primitive-in-cell predicate. First, bounding boxes of primitive and existing cells are evaluated
@@ -131,6 +150,7 @@ class CellComplex:
         * partition the potential cell into two. rewind if partition fails.
         """
         logger.info('constructing cell complex')
+
         for i, bound in enumerate(tqdm(self.bounds)):  # kinetic for each primitive
             # bounding box intersection test
             indices_cells = self._bbox_intersect(bound)  # indices of existing cells with potential intersections
@@ -138,19 +158,46 @@ class CellComplex:
 
             # half-spaces defined by inequalities
             # no change_ring() here (instead, QQ() in _inequalities) speeds up 10x
-            # todo: init before the loop
+            # init before the loop could possibly speed up a bit
             hspace_positive, hspace_negative = [Polyhedron(ieqs=[inequality]) for inequality in
                                                 self._inequalities(self.planes[i])]
 
             # partition the intersected cells and their bounds while doing mesh slice plane
             indices_parents = []
 
-            for index in indices_cells:
-                cell_positive = hspace_positive.intersection(self.cells[index])
-                cell_negative = hspace_negative.intersection(self.cells[index])
+            for index_cell in indices_cells:
+                cell_positive = hspace_positive.intersection(self.cells[index_cell])
+                cell_negative = hspace_negative.intersection(self.cells[index_cell])
 
+                # todo: check degenerated cases: single vertex or edge; use dim() instead?
                 if cell_positive.is_empty() or cell_negative.is_empty():
                     continue
+
+                # incrementally build the adjacency graph
+                if self.graph is not None:
+                    # append the two nodes being partitioned
+                    self.graph.add_node(self.index_node + 1)
+                    self.graph.add_node(self.index_node + 2)
+
+                    # append the edge in between
+                    self.graph.add_edge(self.index_node + 1, self.index_node + 2)
+
+                    # get neighbours of the current cell from the graph
+                    neighbours = self.graph[list(self.graph.nodes)[index_cell]]  # index in the node list
+
+                    if neighbours:
+                        # get the neighbouring cells to the parent
+                        cells_neighbours = [self.cells[self._index_node_to_cell(n)] for n in neighbours]
+
+                        # adjacency test between both created cells and their neighbours
+                        for n, cell in enumerate(cells_neighbours):
+                            if cell_positive.intersection(cell).dim() == 2:  # strictly a face
+                                self.graph.add_edge(self.index_node + 1, list(neighbours)[n])
+                            if cell_negative.intersection(cell).dim() == 2:
+                                self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
+
+                    # update cell id
+                    self.index_node += 2
 
                 self.cells.append(cell_positive)
                 self.cells.append(cell_negative)
@@ -159,12 +206,16 @@ class CellComplex:
                 self.cells_bounds.append(cell_positive.bounding_box())
                 self.cells_bounds.append(cell_negative.bounding_box())
 
-                indices_parents.append(index)
+                indices_parents.append(index_cell)
 
             # delete the parent cells and their bounds. this does not affect the appended ones
             for index_parent in sorted(indices_parents, reverse=True):
                 del self.cells[index_parent]
                 del self.cells_bounds[index_parent]
+
+                # remove the parent node (and its incident edges) in the graph
+                if self.graph is not None:
+                    self.graph.remove_node(list(self.graph.nodes)[index_parent])
 
         self.constructed = True
         logger.info('cell complex constructed')
@@ -195,7 +246,7 @@ class CellComplex:
         elif location == 'centroid':
             return [cell.centroid() for cell in self.cells]
         else:
-            raise ValueError("expected 'mass' or 'centroid' as mode, got {}".format(mode))
+            raise ValueError("expected 'mass' or 'centroid' as mode, got {}".format(location))
 
     def print_info(self):
         logger.info('number of planes: {}'.format(self.num_plane))
@@ -245,6 +296,12 @@ class CellComplex:
                 f.writelines(scene_str)
         else:
             raise RuntimeError('cell complex has not been constructed')
+
+    def draw_graph(self):
+        import matplotlib.pyplot as plt
+        plt.subplot(121)
+        nx.draw(self.graph, with_labels=True, font_weight='bold')
+        plt.show()
 
     def save_plm(self, filepath, indices_cells=None):
         """

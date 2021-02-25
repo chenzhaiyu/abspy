@@ -3,3 +3,6 @@ tqdm==4.56.0
 sage~=9.2
 scikit-learn~=0.24.1
 colorlog
+networkx~=2.5
+matplotlib
+trimesh~=3.9.1
