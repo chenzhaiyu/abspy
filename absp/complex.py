@@ -40,7 +40,7 @@ class CellComplex:
         if build_graph:
             self.graph = nx.Graph()
             self.graph.add_node(0)  # the initial cell
-            self.index_node = 0     # unique for every cell ever generated
+            self.index_node = 0  # unique for every cell ever generated
         else:
             self.graph = None
 
@@ -125,7 +125,7 @@ class CellComplex:
     def _inequalities(plane):
         """
         :param plane parameters. 4,.
-        :return: inequalities defining two half-spaces seperated by the plane
+        :return: inequalities defining two half-spaces separated by the plane
         """
         positive = [QQ(plane[-1]), QQ(plane[0]), QQ(plane[1]), QQ(plane[2])]
         negative = [QQ(-element) for element in positive]
@@ -169,13 +169,20 @@ class CellComplex:
                 cell_positive = hspace_positive.intersection(self.cells[index_cell])
                 cell_negative = hspace_negative.intersection(self.cells[index_cell])
 
-                # todo: check degenerated cases: single vertex or edge; use dim() instead?
-                if cell_positive.is_empty() or cell_negative.is_empty():
+                if cell_positive.dim() != 3 or cell_negative.dim() != 3:
+                    # if cell_positive.is_empty() or cell_negative.is_empty():
+                    """
+                    cannot use is_empty() predicate for degenerate cases:
+                        sage: Polyhedron(vertices=[[0, 1, 2]])
+                        A 0-dimensional polyhedron in ZZ^3 defined as the convex hull of 1 vertex
+                        sage: Polyhedron(vertices=[[0, 1, 2]]).is_empty()
+                        False
+                    """
                     continue
 
                 # incrementally build the adjacency graph
                 if self.graph is not None:
-                    # append the two nodes being partitioned
+                    # append the two nodes (UID) being partitioned
                     self.graph.add_node(self.index_node + 1)
                     self.graph.add_node(self.index_node + 2)
 
@@ -190,6 +197,11 @@ class CellComplex:
                         cells_neighbours = [self.cells[self._index_node_to_cell(n)] for n in neighbours]
 
                         # adjacency test between both created cells and their neighbours
+                        # todo:
+                        #   avoid 3d-3d intersection if possible. those unsliced neighbours connect with only one child
+                        #   - reduce computation by half - can be further reduced using vertices/faces instead of
+                        #   polyhedron intersection. those sliced neighbors connect with both children
+
                         for n, cell in enumerate(cells_neighbours):
                             if cell_positive.intersection(cell).dim() == 2:  # strictly a face
                                 self.graph.add_edge(self.index_node + 1, list(neighbours)[n])
@@ -296,12 +308,6 @@ class CellComplex:
                 f.writelines(scene_str)
         else:
             raise RuntimeError('cell complex has not been constructed')
-
-    def draw_graph(self):
-        import matplotlib.pyplot as plt
-        plt.subplot(121)
-        nx.draw(self.graph, with_labels=True, font_weight='bold')
-        plt.show()
 
     def save_plm(self, filepath, indices_cells=None):
         """

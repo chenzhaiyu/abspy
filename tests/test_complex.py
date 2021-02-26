@@ -2,7 +2,7 @@ import numpy as np
 from absp import CellComplex
 
 
-def example_construct_cell_complex():
+def example_cell_complex():
     planes = np.array([[0, 1, 0, -50], [0, 0, 1, -50]])
     bounds = np.array([[[0, 50, 0], [100, 50, 100]], [[0, 0, 50], [100, 50, 50]]])
     initial_bound = [[0, 0, 0], [100, 100, 100]]
@@ -13,8 +13,7 @@ def example_construct_cell_complex():
     cell_complex.print_info()
     cell_complex.save_obj('../output/cells.obj')
     cell_complex.save_plm('../output/cells.plm')
-    cell_complex.draw_graph()
 
 
 if __name__ == '__main__':
-    example_construct_cell_complex()
+    example_cell_complex()
