@@ -1,8 +1,6 @@
-numpy==1.19.2
-tqdm==4.56.0
-sage~=9.2
-scikit-learn~=0.24.1
-colorlog
 networkx~=2.5
-matplotlib
-trimesh~=3.9.1
+numpy~=1.20.1
+sage~=9.2
+tqdm~=4.58.0
+scikit-learn~=0.24.1
+colorlog~=4.7.2
