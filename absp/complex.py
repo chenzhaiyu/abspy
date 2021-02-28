@@ -51,8 +51,7 @@ class CellComplex:
         :return: Polyhedron object of the initial cell. a cuboid with 12 triangular facets.
         """
         return polytopes.cube(
-            intervals=[[self.initial_bound[0][i], self.initial_bound[1][i]] for i in range(3)]).change_ring(
-            QQ)
+            intervals=[[QQ(self.initial_bound[0][i]), QQ(self.initial_bound[1][i])] for i in range(3)])
 
     def prioritise_planes(self):
         """
