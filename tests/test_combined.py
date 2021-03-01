@@ -17,6 +17,7 @@ def example_combined():
     weights_dict = graph.to_dict(weights_list)
 
     graph.assign_weights_to_cell_links(weights=None)  # provided by the cell complex
+    graph.normalise_cell_capacity()
     graph.assign_weights_to_st_links(weights_dict)  # provided by the neural network prediction
     _, _ = graph.cut()
 

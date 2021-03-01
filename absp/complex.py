@@ -202,10 +202,15 @@ class CellComplex:
                         #   polyhedron intersection. those sliced neighbors connect with both children
 
                         for n, cell in enumerate(cells_neighbours):
-                            if cell_positive.intersection(cell).dim() == 2:  # strictly a face
-                                self.graph.add_edge(self.index_node + 1, list(neighbours)[n])
-                            if cell_negative.intersection(cell).dim() == 2:
-                                self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
+                            interface_positive = cell_positive.intersection(cell)
+                            interface_negative = cell_negative.intersection(cell)
+
+                            if interface_positive.dim() == 2:  # strictly a face
+                                self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
+                                                    capacity=self._interface_capacity(interface_positive))
+                            if interface_negative.dim() == 2:
+                                self.graph.add_edge(self.index_node + 2, list(neighbours)[n],
+                                                    capacity=self._interface_capacity(interface_negative))
 
                     # update cell id
                     self.index_node += 2
@@ -224,12 +229,21 @@ class CellComplex:
                 del self.cells[index_parent]
                 del self.cells_bounds[index_parent]
 
-                # remove the parent node (and its incident edges) in the graph
+                # remove the parent node (and subsequently its incident edges) in the graph
                 if self.graph is not None:
                     self.graph.remove_node(list(self.graph.nodes)[index_parent])
 
         self.constructed = True
         logger.info('cell complex constructed')
+
+    @staticmethod
+    def _interface_capacity(interface):
+        """
+        The edge attribute between a pair of cells. interface is a 2-polyhedron.
+        """
+        # the maximal distance from the center to a vertex
+        # todo: do it in a separate loop
+        return float(interface.radius())  # slow computation; no conversion overhead found
 
     def visualise(self):
         if self.constructed:

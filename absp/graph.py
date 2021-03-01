@@ -34,9 +34,17 @@ class AdjacencyGraph:
         # G.edges[1, 2].update({0: 5})
 
         if weights is None:
-            nx.set_edge_attributes(self.graph, 0.0, name='capacity')
+            # use existing between-cell capacity
+            pass
         else:
+            # nx.set_edge_attributes(self.graph, 0.0, name='capacity')
             raise NotImplementedError('smooth term formulation not implemented')
+
+    def normalise_cell_capacity(self):
+        # normalise the weights
+        max_capacity = max(nx.get_edge_attributes(self.graph, 'capacity').values())
+        for edge in nx.get_edge_attributes(self.graph, 'capacity'):
+            self.graph.edges[edge]['capacity'] /= max_capacity
 
     def assign_weights_to_st_links(self, weights, ):
         """
