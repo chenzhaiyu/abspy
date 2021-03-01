@@ -34,7 +34,7 @@ class AdjacencyGraph:
         # G.edges[1, 2].update({0: 5})
 
         if weights is None:
-            nx.set_edge_attributes(self.graph, 0.1, name='capacity')
+            nx.set_edge_attributes(self.graph, 0.0, name='capacity')
         else:
             raise NotImplementedError('smooth term formulation not implemented')
 
@@ -53,6 +53,7 @@ class AdjacencyGraph:
         """
         cut_value, partition = nx.algorithms.flow.minimum_cut(self.graph, 's', 't')
         reachable, non_reachable = partition
+        reachable.remove('s')
         logger.info('cut_value: {}'.format(cut_value))
         logger.info('number of extracted cells: {}'.format(len(reachable)))
         return cut_value, reachable
@@ -73,6 +74,12 @@ class AdjacencyGraph:
         :param query: query index in the node list.
         """
         return self.uid.index(query)
+
+    def to_index(self, uid):
+        """
+        Convert UIDs to indices.
+        """
+        return [self._uid_to_index(i) for i in uid]
 
     def _index_to_uid(self, query):
         """
