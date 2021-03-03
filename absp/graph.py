@@ -40,11 +40,15 @@ class AdjacencyGraph:
             # nx.set_edge_attributes(self.graph, 0.0, name='capacity')
             raise NotImplementedError('smooth term formulation not implemented')
 
-    def normalise_cell_capacity(self):
-        # normalise the weights
+    def normalise_cell_capacity(self, inverse=False, factor=0.1):
+        """
+        Normalise the weights to the range (0, factor]. invert the capacity if inverse is set True.
+        """
         max_capacity = max(nx.get_edge_attributes(self.graph, 'capacity').values())
         for edge in nx.get_edge_attributes(self.graph, 'capacity'):
-            self.graph.edges[edge]['capacity'] /= max_capacity
+            self.graph.edges[edge]['capacity'] /= (max_capacity / factor)
+            if inverse:
+                self.graph.edges[edge]['capacity'] = factor - self.graph.edges[edge]['capacity']
 
     def assign_weights_to_st_links(self, weights, ):
         """
