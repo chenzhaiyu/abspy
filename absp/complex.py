@@ -235,20 +235,6 @@ class CellComplex:
         self.constructed = True
         logger.info('cell complex constructed')
 
-    # def interface_attribute(self, index_cell_a, index_cell_b, mode='radius'):
-    #     """
-    #     The edge attribute between a pair of cells. interface is a 2-polyhedron.
-    #     """
-    #     interface = self.cells[index_cell_a].intersection(self.cells[index_cell_b])
-    #     if mode == 'radius':
-    #         # the maximal distance from the center to a vertex
-    #         return RR(interface.radius())  # slow computation; no conversion overhead found
-    #     elif mode == 'area':
-    #         # area of the overlap
-    #         return RR(interface.volume(measure='induced'))  # even slower: triangulation is performed
-    #     else:
-    #         raise NotImplementedError
-
     def visualise(self):
         if self.constructed:
             raise NotImplementedError

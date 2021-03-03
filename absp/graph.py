@@ -40,7 +40,7 @@ class AdjacencyGraph:
                     if radius > max_radius:
                         max_radius = radius
                 elif mode == 'area':
-                    area = RR(interface.area())
+                    area = RR(interface.volume(measure='induced'))
                     if area > max_area:
                         max_area = area
 
@@ -96,17 +96,23 @@ class AdjacencyGraph:
         """
         return self.uid.index(query)
 
-    def to_index(self, uid):
-        """
-        Convert UIDs to indices.
-        """
-        return [self._uid_to_index(i) for i in uid]
-
     def _index_to_uid(self, query):
         """
         Convert index to node UID.
         """
         return self.uid[query]
+
+    def _sort_uid(self):
+        """
+        Sort UID for graph structure loaded from an external file.
+        """
+        return sorted([int(i) for i in self.graph.nodes])
+
+    def to_indices(self, uids):
+        """
+        Convert UIDs to indices.
+        """
+        return [self._uid_to_index(i) for i in uids]
 
     def to_dict(self, weights_list):
         """
@@ -114,8 +120,3 @@ class AdjacencyGraph:
         """
         return {self.uid[i]: weight for i, weight in enumerate(weights_list)}
 
-    def _sort_uid(self):
-        """
-        Sort UID for graph structure loaded from an external file.
-        """
-        return sorted([int(i) for i in self.graph.nodes])
