@@ -48,13 +48,14 @@ class AdjacencyGraph:
             # compute interface
             interface = cells[self._uid_to_index(i)].intersection(cells[self._uid_to_index(j)])
             if mode == 'radius':
-                # the maximal distance from the center to a vertex
-                radius = (max_radius - RR(interface.radius())) / max_radius if normalise else RR(interface.radius())
+                # the maximal distance from the center to a vertex -> inverted: penalising small radius
+                radius = (max_radius - RR(interface.radius())) / max_radius if normalise else max_radius - RR(
+                    interface.radius())
                 self.graph[i][j].update({'capacity': radius * factor})
 
             elif mode == 'area':
-                # area of the overlap
-                area = (max_area - RR(interface.volume(measure='induced'))) / max_area if normalise else RR(
+                # area of the overlap -> inverted: penalising small area
+                area = (max_area - RR(interface.volume(measure='induced'))) / max_area if normalise else max_area - RR(
                     interface.volume(measure='induced'))
                 self.graph[i][j].update({'capacity': area * factor})
 
