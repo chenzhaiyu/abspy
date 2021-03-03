@@ -1,5 +1,6 @@
 from pathlib import Path
 import networkx as nx
+from sage.all import RR
 
 from absp import attach_to_log
 
@@ -23,32 +24,39 @@ class AdjacencyGraph:
         else:
             raise NotImplementedError('file format not supported: {}'.format(filepath.suffix))
 
-    def assign_weights_to_cell_links(self, weights):
+    def assign_weights_to_n_links(self, cells, mode='radius', normalise=True, factor=1.0):
         """
         Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
         """
-        # https://networkx.org/documentation/stable/tutorial.html#edge-attributes
-        # For non-string attribute keys, use subscript notation.
-        # G.add_edge(1, 2)
-        # G[1][2].update({0: 5})
-        # G.edges[1, 2].update({0: 5})
+        # compute the max_radius and max_area for normalisation
+        if normalise:
+            max_radius = 0
+            max_area = 0
+            for i, j in self.graph.edges:
+                # compute interface
+                interface = cells[self._uid_to_index(i)].intersection(cells[self._uid_to_index(j)])
+                if mode == 'radius':
+                    radius = RR(interface.radius())
+                    if radius > max_radius:
+                        max_radius = radius
+                elif mode == 'area':
+                    area = RR(interface.area())
+                    if area > max_area:
+                        max_area = area
 
-        if weights is None:
-            # use existing between-cell capacity
-            pass
-        else:
-            # nx.set_edge_attributes(self.graph, 0.0, name='capacity')
-            raise NotImplementedError('smooth term formulation not implemented')
+        for i, j in self.graph.edges:
+            # compute interface
+            interface = cells[self._uid_to_index(i)].intersection(cells[self._uid_to_index(j)])
+            if mode == 'radius':
+                # the maximal distance from the center to a vertex
+                radius = (max_radius - RR(interface.radius())) / max_radius if normalise else RR(interface.radius())
+                self.graph[i][j].update({'capacity': radius * factor})
 
-    def normalise_cell_capacity(self, inverse=False, factor=0.1):
-        """
-        Normalise the weights to the range (0, factor]. invert the capacity if inverse is set True.
-        """
-        max_capacity = max(nx.get_edge_attributes(self.graph, 'capacity').values())
-        for edge in nx.get_edge_attributes(self.graph, 'capacity'):
-            self.graph.edges[edge]['capacity'] /= (max_capacity / factor)
-            if inverse:
-                self.graph.edges[edge]['capacity'] = factor - self.graph.edges[edge]['capacity']
+            elif mode == 'area':
+                # area of the overlap
+                area = (max_area - RR(interface.volume(measure='induced'))) / max_area if normalise else RR(
+                    interface.volume(measure='induced'))
+                self.graph[i][j].update({'capacity': area * factor})
 
     def assign_weights_to_st_links(self, weights, ):
         """

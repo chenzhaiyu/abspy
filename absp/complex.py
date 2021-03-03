@@ -203,30 +203,13 @@ class CellComplex:
 
                         for n, cell in enumerate(cells_neighbours):
 
-                            # ------------------------------  slow  ------------------------------
-                            '''
-                            # extract the coplanar faces
-                            for facet_cell in cell.facets():
-                                for facet_positive, facet_negative in zip(cell_positive.facets(), cell_negative.facets()):
-                                    interface_positive = facet_cell.as_polyhedron().intersection(facet_positive.as_polyhedron())
-                                    interface_negative = facet_cell.as_polyhedron().intersection(facet_negative.as_polyhedron())
-
-                                    if interface_positive.dim() == 2:
-                                        self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
-                                                            capacity=self._interface_capacity(interface_positive))
-                                    if interface_negative.dim() == 2:
-                                        self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
-                                                            capacity=self._interface_capacity(interface_negative))
-                            '''
                             interface_positive = cell_positive.intersection(cell)
                             interface_negative = cell_negative.intersection(cell)
 
                             if interface_positive.dim() == 2:  # strictly a face
-                                self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
-                                                    capacity=self._interface_capacity(interface_positive))
+                                self.graph.add_edge(self.index_node + 1, list(neighbours)[n])
                             if interface_negative.dim() == 2:
-                                self.graph.add_edge(self.index_node + 2, list(neighbours)[n],
-                                                    capacity=self._interface_capacity(interface_negative))
+                                self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
 
                     # update cell id
                     self.index_node += 2
@@ -252,15 +235,19 @@ class CellComplex:
         self.constructed = True
         logger.info('cell complex constructed')
 
-    @staticmethod
-    def _interface_capacity(interface):
-        """
-        The edge attribute between a pair of cells. interface is a 2-polyhedron.
-        """
-        # the maximal distance from the center to a vertex
-        # todo: do it in a separate loop
-        return float(interface.radius())  # slow computation; no conversion overhead found
-        # return RR(interface.volume(measure='induced'))  # the area; even slower: triangulation is performed
+    # def interface_attribute(self, index_cell_a, index_cell_b, mode='radius'):
+    #     """
+    #     The edge attribute between a pair of cells. interface is a 2-polyhedron.
+    #     """
+    #     interface = self.cells[index_cell_a].intersection(self.cells[index_cell_b])
+    #     if mode == 'radius':
+    #         # the maximal distance from the center to a vertex
+    #         return RR(interface.radius())  # slow computation; no conversion overhead found
+    #     elif mode == 'area':
+    #         # area of the overlap
+    #         return RR(interface.volume(measure='induced'))  # even slower: triangulation is performed
+    #     else:
+    #         raise NotImplementedError
 
     def visualise(self):
         if self.constructed:
