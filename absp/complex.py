@@ -204,19 +204,20 @@ class CellComplex:
                         for n, cell in enumerate(cells_neighbours):
 
                             # ------------------------------  slow  ------------------------------
-                            # # extract the coplanar faces
-                            # for facet_cell in cell.facets():
-                            #     for facet_positive, facet_negative in zip(cell_positive.facets(), cell_negative.facets()):
-                            #         interface_positive = facet_cell.as_polyhedron().intersection(facet_positive.as_polyhedron())
-                            #         interface_negative = facet_cell.as_polyhedron().intersection(facet_negative.as_polyhedron())
-                            #
-                            #         if interface_positive.dim() == 2:
-                            #             self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
-                            #                                 capacity=self._interface_capacity(interface_positive))
-                            #         if interface_negative.dim() == 2:
-                            #             self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
-                            #                                 capacity=self._interface_capacity(interface_negative))
+                            '''
+                            # extract the coplanar faces
+                            for facet_cell in cell.facets():
+                                for facet_positive, facet_negative in zip(cell_positive.facets(), cell_negative.facets()):
+                                    interface_positive = facet_cell.as_polyhedron().intersection(facet_positive.as_polyhedron())
+                                    interface_negative = facet_cell.as_polyhedron().intersection(facet_negative.as_polyhedron())
 
+                                    if interface_positive.dim() == 2:
+                                        self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
+                                                            capacity=self._interface_capacity(interface_positive))
+                                    if interface_negative.dim() == 2:
+                                        self.graph.add_edge(self.index_node + 1, list(neighbours)[n],
+                                                            capacity=self._interface_capacity(interface_negative))
+                            '''
                             interface_positive = cell_positive.intersection(cell)
                             interface_negative = cell_negative.intersection(cell)
 
