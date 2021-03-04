@@ -1,6 +1,8 @@
 from pathlib import Path
 import networkx as nx
 from sage.all import RR
+from scipy.spatial import ConvexHull
+
 
 from absp import attach_to_log
 
@@ -24,7 +26,7 @@ class AdjacencyGraph:
         else:
             raise NotImplementedError('file format not supported: {}'.format(filepath.suffix))
 
-    def assign_weights_to_n_links(self, cells, mode='radius', normalise=True, factor=1.0):
+    def assign_weights_to_n_links(self, cells, mode='radius', normalise=True, factor=1.0, backend='Qhull'):
         """
         Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
         """
@@ -32,7 +34,7 @@ class AdjacencyGraph:
         radius = [None] * len(self.graph.edges)
         area = [None] * len(self.graph.edges)
 
-        if mode == 'radius':
+        if mode == 'radius_overlap':
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
                 interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
@@ -49,7 +51,13 @@ class AdjacencyGraph:
                 # compute interface
                 interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
                 # area of the overlap -> inverted: penalising small area
-                area[i] = RR(interface.volume(measure='induced'))
+                if backend == 'Qhull':
+                    # 'volume' is the area of the convex hull when input points are 2-dimensional
+                    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html
+                    area[i] = ConvexHull(interface.affine_hull_projection().vertices_list()).volume
+                else:
+                    # slower computation
+                    area[i] = RR(interface.affine_hull_projection().volume())
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_area = max(area)
@@ -58,7 +66,7 @@ class AdjacencyGraph:
 
         elif mode == 'area_misalign':
             # area of the mis-aligned regions from both cells
-            pass
+            raise NotImplementedError
 
     def assign_weights_to_st_links(self, weights):
         """
