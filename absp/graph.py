@@ -28,38 +28,39 @@ class AdjacencyGraph:
         """
         Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
         """
-        # compute the max_radius and max_area for normalisation
-        if normalise:
-            max_radius = 0
-            max_area = 0
-            for i, j in self.graph.edges:
+
+        radius = [None] * len(self.graph.edges)
+        area = [None] * len(self.graph.edges)
+
+        if mode == 'radius':
+            for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
-                interface = cells[self._uid_to_index(i)].intersection(cells[self._uid_to_index(j)])
-                if mode == 'radius':
-                    radius = RR(interface.radius())
-                    if radius > max_radius:
-                        max_radius = radius
-                elif mode == 'area':
-                    area = RR(interface.volume(measure='induced'))
-                    if area > max_area:
-                        max_area = area
-
-        for i, j in self.graph.edges:
-            # compute interface
-            interface = cells[self._uid_to_index(i)].intersection(cells[self._uid_to_index(j)])
-            if mode == 'radius':
+                interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
                 # the maximal distance from the center to a vertex -> inverted: penalising small radius
-                radius = (max_radius - RR(interface.radius())) / max_radius if normalise else max_radius - RR(
-                    interface.radius())
-                self.graph[i][j].update({'capacity': radius * factor})
+                radius[i] = RR(interface.radius())
 
-            elif mode == 'area':
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_radius = max(radius)
+                self.graph[m][n].update({'capacity': ((max_radius - radius[
+                    i]) / max_radius if normalise else max_radius - radius[i]) * factor})
+
+        elif mode == 'area_overlap':
+            for i, (m, n) in enumerate(self.graph.edges):
+                # compute interface
+                interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
                 # area of the overlap -> inverted: penalising small area
-                area = (max_area - RR(interface.volume(measure='induced'))) / max_area if normalise else max_area - RR(
-                    interface.volume(measure='induced'))
-                self.graph[i][j].update({'capacity': area * factor})
+                area[i] = RR(interface.volume(measure='induced'))
 
-    def assign_weights_to_st_links(self, weights, ):
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_area = max(area)
+                self.graph[m][n].update(
+                    {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
+
+        elif mode == 'area_misalign':
+            # area of the mis-aligned regions from both cells
+            pass
+
+    def assign_weights_to_st_links(self, weights):
         """
         Assign weights to edges between each cell and the s-t nodes. weights is a dict in respect to each node.
         the weights can be the occupancy probability or the signed distance of the cells
@@ -67,7 +68,7 @@ class AdjacencyGraph:
         for i in self.uid:
             self.graph.add_edge(i, 's', capacity=weights[i])
             self.graph.add_edge(i, 't', capacity=1 - weights[i])  # make sure
-
+    
     def cut(self):
         """
         Perform cutting operation.
@@ -119,4 +120,3 @@ class AdjacencyGraph:
         Convert a weight list to weight dict keyed by self.uid.
         """
         return {self.uid[i]: weight for i, weight in enumerate(weights_list)}
-
