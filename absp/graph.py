@@ -25,15 +25,16 @@ class AdjacencyGraph:
         else:
             raise NotImplementedError('file format not supported: {}'.format(filepath.suffix))
 
-    def assign_weights_to_n_links(self, cells, mode='radius', normalise=True, factor=1.0, engine='Qhull'):
+    def assign_weights_to_n_links(self, cells, attribute='area_overlap', normalise=True, factor=1.0, engine='Qhull'):
         """
         Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
         """
 
         radius = [None] * len(self.graph.edges)
         area = [None] * len(self.graph.edges)
+        volume = [None] * len(self.graph.edges)
 
-        if mode == 'radius_overlap':
+        if attribute == 'radius_overlap':
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
                 interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
@@ -45,7 +46,7 @@ class AdjacencyGraph:
                 self.graph[m][n].update({'capacity': ((max_radius - radius[
                     i]) / max_radius if normalise else max_radius - radius[i]) * factor})
 
-        elif mode == 'area_overlap':
+        elif attribute == 'area_overlap':
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
                 interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
@@ -63,7 +64,7 @@ class AdjacencyGraph:
                 self.graph[m][n].update(
                     {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
 
-        elif mode == 'area_misalign':
+        elif attribute == 'area_misalign':
             # area of the mis-aligned regions from both cells
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
@@ -90,6 +91,18 @@ class AdjacencyGraph:
                 max_area = max(area)
                 self.graph[m][n].update(
                     {'capacity': (area[i] / max_area if normalise else area[i]) * factor})
+
+        elif attribute == 'volume_difference':
+            # encourage partition between relatively a big cell and a small cell
+            for i, (m, n) in enumerate(self.graph.edges):
+                # todo: Qhull engine
+                volume[i] = RR(abs(cells[self._uid_to_index(m)].volume() - cells[self._uid_to_index(n)].volume()) / max(
+                    cells[self._uid_to_index(m)].volume(), cells[self._uid_to_index(n)].volume()))
+
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_volume = max(volume)
+                # small difference (volume[i)) -> large cost
+                self.graph[m][n].update({'capacity': ((max_volume - volume[i]) / max_volume if normalise else area[i]) * factor})
 
     def assign_weights_to_st_links(self, weights):
         """
