@@ -3,7 +3,6 @@ import networkx as nx
 from sage.all import RR
 from scipy.spatial import ConvexHull
 
-
 from absp import attach_to_log
 
 logger = attach_to_log()
@@ -26,7 +25,7 @@ class AdjacencyGraph:
         else:
             raise NotImplementedError('file format not supported: {}'.format(filepath.suffix))
 
-    def assign_weights_to_n_links(self, cells, mode='radius', normalise=True, factor=1.0, backend='Qhull'):
+    def assign_weights_to_n_links(self, cells, mode='radius', normalise=True, factor=1.0, engine='Qhull'):
         """
         Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
         """
@@ -51,7 +50,7 @@ class AdjacencyGraph:
                 # compute interface
                 interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
                 # area of the overlap -> inverted: penalising small area
-                if backend == 'Qhull':
+                if engine == 'Qhull':
                     # 'volume' is the area of the convex hull when input points are 2-dimensional
                     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html
                     area[i] = ConvexHull(interface.affine_hull_projection().vertices_list()).volume
@@ -66,7 +65,31 @@ class AdjacencyGraph:
 
         elif mode == 'area_misalign':
             # area of the mis-aligned regions from both cells
-            raise NotImplementedError
+            for i, (m, n) in enumerate(self.graph.edges):
+                # compute interface
+                interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
+
+                for facet_m in cells[self._uid_to_index(m)].facets():
+                    for facet_n in cells[self._uid_to_index(n)].facets():
+                        if facet_m.ambient_Hrepresentation()[0].A() == -facet_n.ambient_Hrepresentation()[0].A() and \
+                                facet_m.ambient_Hrepresentation()[0].b() == -facet_n.ambient_Hrepresentation()[0].b():
+                            # two facets coplanar
+                            # area of the misalignment
+                            if engine == 'Qhull':
+                                area[i] = ConvexHull(
+                                    facet_m.as_polyhedron().affine_hull_projection().vertices_list()).volume + ConvexHull(
+                                    facet_n.as_polyhedron().affine_hull_projection().vertices_list()).volume - 2 * ConvexHull(
+                                    interface.affine_hull_projection().vertices_list()).volume
+                            else:
+                                area[i] = RR(
+                                    facet_m.as_polyhedron().affine_hull_projection().volume() +
+                                    facet_n.as_polyhedron().affine_hull_projection().volume() -
+                                    2 * interface.affine_hull_projection().volume())
+
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_area = max(area)
+                self.graph[m][n].update(
+                    {'capacity': (area[i] / max_area if normalise else area[i]) * factor})
 
     def assign_weights_to_st_links(self, weights):
         """
@@ -76,7 +99,7 @@ class AdjacencyGraph:
         for i in self.uid:
             self.graph.add_edge(i, 's', capacity=weights[i])
             self.graph.add_edge(i, 't', capacity=1 - weights[i])  # make sure
-    
+
     def cut(self):
         """
         Perform cutting operation.

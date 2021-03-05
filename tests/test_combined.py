@@ -16,7 +16,7 @@ def example_combined():
     weights_list = [random.random() for i in range(cell_complex.num_cells)]
     weights_dict = graph.to_dict(weights_list)
 
-    graph.assign_weights_to_n_links(cell_complex.cells, mode='area_overlap', factor=0.1)  # provided by the cell complex
+    graph.assign_weights_to_n_links(cell_complex.cells, mode='area_misalign', factor=0.1)  # provided by the cell complex
     graph.assign_weights_to_st_links(weights_dict)  # provided by the neural network prediction
     _, _ = graph.cut()
 
