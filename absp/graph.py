@@ -43,6 +43,7 @@ class AdjacencyGraph:
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_radius = max(radius)
+                # large overlapping radius -> should cut here (in favour of large outer surface) -> low cost
                 self.graph[m][n].update({'capacity': ((max_radius - radius[
                     i]) / max_radius if normalise else max_radius - radius[i]) * factor})
 
@@ -61,6 +62,7 @@ class AdjacencyGraph:
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_area = max(area)
+                # large overlapping area -> should cut here (in favour of large outer surface) -> low cost
                 self.graph[m][n].update(
                     {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
 
@@ -89,20 +91,30 @@ class AdjacencyGraph:
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_area = max(area)
+                # large misalignment -> should not cut here -> high cost
+                # todo: check otherwise
                 self.graph[m][n].update(
                     {'capacity': (area[i] / max_area if normalise else area[i]) * factor})
 
         elif attribute == 'volume_difference':
             # encourage partition between relatively a big cell and a small cell
             for i, (m, n) in enumerate(self.graph.edges):
-                # todo: Qhull engine
-                volume[i] = RR(abs(cells[self._uid_to_index(m)].volume() - cells[self._uid_to_index(n)].volume()) / max(
-                    cells[self._uid_to_index(m)].volume(), cells[self._uid_to_index(n)].volume()))
+                if engine == 'Qhull':
+                    volume[i] = abs(ConvexHull(cells[self._uid_to_index(m)].vertices_list()).volume - ConvexHull(
+                        cells[self._uid_to_index(n)].vertices_list()).volume) / max(
+                        ConvexHull(cells[self._uid_to_index(m)].vertices_list()).volume,
+                        ConvexHull(cells[self._uid_to_index(n)].vertices_list()).volume)
+                else:
+                    volume[i] = RR(
+                        abs(cells[self._uid_to_index(m)].volume() - cells[self._uid_to_index(n)].volume()) / max(
+                            cells[self._uid_to_index(m)].volume(), cells[self._uid_to_index(n)].volume()))
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_volume = max(volume)
-                # small difference (volume[i)) -> large cost
-                self.graph[m][n].update({'capacity': ((max_volume - volume[i]) / max_volume if normalise else area[i]) * factor})
+                # large difference -> should cut here -> low cost
+                # todo: check otherwise
+                self.graph[m][n].update(
+                    {'capacity': ((max_volume - volume[i]) / max_volume if normalise else area[i]) * factor})
 
     def assign_weights_to_st_links(self, weights):
         """
