@@ -58,7 +58,7 @@ class CellComplex:
         return polytopes.cube(
             intervals=[[QQ(self.initial_bound[0][i]), QQ(self.initial_bound[1][i])] for i in range(3)])
 
-    def refine_planes(self, theta=10*3.1416/180, epsilon=0.01, normalise_normal=False):
+    def refine_planes(self, theta=10 * 3.1416 / 180, epsilon=0.001, normalise_normal=False):
         """
         Refine planar primitives. First, compute the angle of the supporting planes for each pair of planar primitives.
         Then, starting from the pair with the smallest angle, test if the following two conditions are met:
@@ -70,9 +70,7 @@ class CellComplex:
         logger.info('refining planar primitives')
 
         # shallow copy of the primitives
-        # todo: type check
-        # todo: tolerance setting
-        # todo: clean
+        # todo: operate on native numpy array
         planes = copy(self.planes).tolist()
         bounds = copy(self.bounds).tolist()
         points = copy(self.points).tolist()
@@ -92,19 +90,23 @@ class CellComplex:
             heapq.heappush(priority_queue, [-angle_cos, i, j])  # negate to use max-heap
 
         to_merge = set()  # indices of planes that are to be merged
+
         while priority_queue:
             pair = heapq.heappop(priority_queue)
             if -pair[0] > theta_cos:  # negate back to use max-heap
 
                 # distance from the center of primitive A to the supporting plane of primitive B
-                distance = np.abs(np.dot((np.array(points[pair[1]]).mean(axis=0) - np.array(points[pair[2]]).mean(axis=0)), planes[pair[1]][:3]))
+                distance = np.abs(
+                    np.dot((np.array(points[pair[1]]).mean(axis=0) - np.array(points[pair[2]]).mean(axis=0)),
+                           planes[pair[1]][:3]))
 
                 if distance < epsilon and pair[1] not in to_merge and pair[2] not in to_merge:
 
                     # merge the two planes
                     points_merged = np.concatenate([points[pair[1]], points[pair[2]]])
                     planes_merged = VertexGroup.fit_plane(points_merged)
-                    bounds_merged = [np.min([bounds[pair[1]][0], bounds[pair[2]][0]], axis=0).tolist(), np.max([bounds[pair[1]][1], bounds[pair[2]][1]], axis=0).tolist()]
+                    bounds_merged = [np.min([bounds[pair[1]][0], bounds[pair[2]][0]], axis=0).tolist(),
+                                     np.max([bounds[pair[1]][1], bounds[pair[2]][1]], axis=0).tolist()]
 
                     to_merge.update({pair[1]})
                     to_merge.update({pair[2]})
@@ -129,6 +131,8 @@ class CellComplex:
             del points[i]
             del bounds[i]
             del planes[i]
+
+        logger.info('{} planes merged'.format(len(to_merge)))
 
         self.planes = np.array(planes)
         self.bounds = np.array(bounds)

@@ -6,7 +6,7 @@ import random
 def example_combined():
     vertex_group = VertexGroup(filepath='./test_data/test_points.vg')
     planes, bounds, points = np.array(vertex_group.planes), np.array(vertex_group.bounds), np.array(
-        vertex_group.points_grouped)
+        vertex_group.points_grouped, dtype=object)
 
     cell_complex = CellComplex(planes, bounds, points, build_graph=True)
     cell_complex.refine_planes()
