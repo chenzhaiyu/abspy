@@ -1,6 +1,7 @@
 from pathlib import Path
 import networkx as nx
 from sage.all import RR
+from scipy.spatial import ConvexHull
 
 from absp import attach_to_log
 
@@ -24,42 +25,98 @@ class AdjacencyGraph:
         else:
             raise NotImplementedError('file format not supported: {}'.format(filepath.suffix))
 
-    def assign_weights_to_n_links(self, cells, mode='radius', normalise=True, factor=1.0):
+    def assign_weights_to_n_links(self, cells, attribute='area_overlap', normalise=True, factor=1.0, engine='Qhull'):
         """
         Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
         """
-        # compute the max_radius and max_area for normalisation
-        if normalise:
-            max_radius = 0
-            max_area = 0
-            for i, j in self.graph.edges:
+
+        radius = [None] * len(self.graph.edges)
+        area = [None] * len(self.graph.edges)
+        volume = [None] * len(self.graph.edges)
+
+        if attribute == 'radius_overlap':
+            for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
-                interface = cells[self._uid_to_index(i)].intersection(cells[self._uid_to_index(j)])
-                if mode == 'radius':
-                    radius = RR(interface.radius())
-                    if radius > max_radius:
-                        max_radius = radius
-                elif mode == 'area':
-                    area = RR(interface.volume(measure='induced'))
-                    if area > max_area:
-                        max_area = area
-
-        for i, j in self.graph.edges:
-            # compute interface
-            interface = cells[self._uid_to_index(i)].intersection(cells[self._uid_to_index(j)])
-            if mode == 'radius':
+                interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
                 # the maximal distance from the center to a vertex -> inverted: penalising small radius
-                radius = (max_radius - RR(interface.radius())) / max_radius if normalise else max_radius - RR(
-                    interface.radius())
-                self.graph[i][j].update({'capacity': radius * factor})
+                radius[i] = RR(interface.radius())
 
-            elif mode == 'area':
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_radius = max(radius)
+                # large overlapping radius -> should cut here (in favour of large outer surface) -> low cost
+                self.graph[m][n].update({'capacity': ((max_radius - radius[
+                    i]) / max_radius if normalise else max_radius - radius[i]) * factor})
+
+        elif attribute == 'area_overlap':
+            for i, (m, n) in enumerate(self.graph.edges):
+                # compute interface
+                interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
                 # area of the overlap -> inverted: penalising small area
-                area = (max_area - RR(interface.volume(measure='induced'))) / max_area if normalise else max_area - RR(
-                    interface.volume(measure='induced'))
-                self.graph[i][j].update({'capacity': area * factor})
+                if engine == 'Qhull':
+                    # 'volume' is the area of the convex hull when input points are 2-dimensional
+                    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html
+                    area[i] = ConvexHull(interface.affine_hull_projection().vertices_list()).volume
+                else:
+                    # slower computation
+                    area[i] = RR(interface.affine_hull_projection().volume())
 
-    def assign_weights_to_st_links(self, weights, ):
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_area = max(area)
+                # large overlapping area -> should cut here (in favour of large outer surface) -> low cost
+                self.graph[m][n].update(
+                    {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
+
+        elif attribute == 'area_misalign':
+            # area of the mis-aligned regions from both cells
+            for i, (m, n) in enumerate(self.graph.edges):
+                # compute interface
+                interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
+
+                for facet_m in cells[self._uid_to_index(m)].facets():
+                    for facet_n in cells[self._uid_to_index(n)].facets():
+                        if facet_m.ambient_Hrepresentation()[0].A() == -facet_n.ambient_Hrepresentation()[0].A() and \
+                                facet_m.ambient_Hrepresentation()[0].b() == -facet_n.ambient_Hrepresentation()[0].b():
+                            # two facets coplanar
+                            # area of the misalignment
+                            if engine == 'Qhull':
+                                area[i] = ConvexHull(
+                                    facet_m.as_polyhedron().affine_hull_projection().vertices_list()).volume + ConvexHull(
+                                    facet_n.as_polyhedron().affine_hull_projection().vertices_list()).volume - 2 * ConvexHull(
+                                    interface.affine_hull_projection().vertices_list()).volume
+                            else:
+                                area[i] = RR(
+                                    facet_m.as_polyhedron().affine_hull_projection().volume() +
+                                    facet_n.as_polyhedron().affine_hull_projection().volume() -
+                                    2 * interface.affine_hull_projection().volume())
+
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_area = max(area)
+                # large misalignment -> should not cut here -> high cost
+                # todo: check otherwise
+                self.graph[m][n].update(
+                    {'capacity': (area[i] / max_area if normalise else area[i]) * factor})
+
+        elif attribute == 'volume_difference':
+            # encourage partition between relatively a big cell and a small cell
+            for i, (m, n) in enumerate(self.graph.edges):
+                if engine == 'Qhull':
+                    volume[i] = abs(ConvexHull(cells[self._uid_to_index(m)].vertices_list()).volume - ConvexHull(
+                        cells[self._uid_to_index(n)].vertices_list()).volume) / max(
+                        ConvexHull(cells[self._uid_to_index(m)].vertices_list()).volume,
+                        ConvexHull(cells[self._uid_to_index(n)].vertices_list()).volume)
+                else:
+                    volume[i] = RR(
+                        abs(cells[self._uid_to_index(m)].volume() - cells[self._uid_to_index(n)].volume()) / max(
+                            cells[self._uid_to_index(m)].volume(), cells[self._uid_to_index(n)].volume()))
+
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_volume = max(volume)
+                # large difference -> should cut here -> low cost
+                # todo: check otherwise
+                self.graph[m][n].update(
+                    {'capacity': ((max_volume - volume[i]) / max_volume if normalise else area[i]) * factor})
+
+    def assign_weights_to_st_links(self, weights):
         """
         Assign weights to edges between each cell and the s-t nodes. weights is a dict in respect to each node.
         the weights can be the occupancy probability or the signed distance of the cells
@@ -119,4 +176,3 @@ class AdjacencyGraph:
         Convert a weight list to weight dict keyed by self.uid.
         """
         return {self.uid[i]: weight for i, weight in enumerate(weights_list)}
-
