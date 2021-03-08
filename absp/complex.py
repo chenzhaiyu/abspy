@@ -101,6 +101,7 @@ class CellComplex:
                     np.dot((np.array(points[pair[1]]).mean(axis=0) - np.array(points[pair[2]]).mean(axis=0)),
                            planes[pair[1]][:3]))
 
+                # assume normalised data so that epsilon can be an arbitrary number in (0, 1]
                 if distance < epsilon and pair[1] not in to_merge and pair[2] not in to_merge:
                     # merge the two planes
                     points_merged = np.concatenate([points[pair[1]], points[pair[2]]])

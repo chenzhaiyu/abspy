@@ -111,10 +111,9 @@ class AdjacencyGraph:
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_volume = max(volume)
-                # large difference -> should cut here -> low cost
-                # todo: check otherwise
+                # large difference -> should not cut here -> high cost
                 self.graph[m][n].update(
-                    {'capacity': ((max_volume - volume[i]) / max_volume if normalise else area[i]) * factor})
+                    {'capacity': (volume[i] / max_volume if normalise else volume[i]) * factor})
 
     def assign_weights_to_st_links(self, weights):
         """
