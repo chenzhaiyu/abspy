@@ -70,10 +70,9 @@ class CellComplex:
         logger.info('refining planar primitives')
 
         # shallow copy of the primitives
-        # todo: operate on native numpy array
-        planes = copy(self.planes).tolist()
-        bounds = copy(self.bounds).tolist()
-        points = copy(self.points).tolist()
+        planes = list(copy(self.planes))
+        bounds = list(copy(self.bounds))
+        points = list(copy(self.points))
 
         # pre-compute cosine of theta
         theta_cos = np.cos(theta)
@@ -89,25 +88,27 @@ class CellComplex:
                 angle_cos /= (np.linalg.norm(planes[i][:3]) * np.linalg.norm(planes[j][:3]))
             heapq.heappush(priority_queue, [-angle_cos, i, j])  # negate to use max-heap
 
-        to_merge = set()  # indices of planes that are to be merged
+        # indices of planes to be merged
+        to_merge = set()
 
         while priority_queue:
+            # the pair with smallest angle
             pair = heapq.heappop(priority_queue)
-            if -pair[0] > theta_cos:  # negate back to use max-heap
 
-                # distance from the center of primitive A to the supporting plane of primitive B
+            if -pair[0] > theta_cos:  # negate back to use max-heap
+                # distance from the center of a primitive to the supporting plane of the other
                 distance = np.abs(
                     np.dot((np.array(points[pair[1]]).mean(axis=0) - np.array(points[pair[2]]).mean(axis=0)),
                            planes[pair[1]][:3]))
 
                 if distance < epsilon and pair[1] not in to_merge and pair[2] not in to_merge:
-
                     # merge the two planes
                     points_merged = np.concatenate([points[pair[1]], points[pair[2]]])
                     planes_merged = VertexGroup.fit_plane(points_merged)
                     bounds_merged = [np.min([bounds[pair[1]][0], bounds[pair[2]][0]], axis=0).tolist(),
                                      np.max([bounds[pair[1]][1], bounds[pair[2]][1]], axis=0).tolist()]
 
+                    # update to_merge
                     to_merge.update({pair[1]})
                     to_merge.update({pair[2]})
 
@@ -115,9 +116,9 @@ class CellComplex:
                     for i, p in enumerate(planes):
                         if i not in to_merge:
                             angle_cos = np.abs(np.dot(planes_merged[:3], p[:3]))
-                            heapq.heappush(priority_queue, [-angle_cos, i, len(planes)])
+                            heapq.heappush(priority_queue, [-angle_cos, i, len(planes)])  # placeholder
 
-                    # update the actual data
+                    # update the actual data with the merged ones
                     points.append(points_merged)
                     bounds.append(bounds_merged)
                     planes.append(planes_merged)
@@ -126,7 +127,7 @@ class CellComplex:
                 # no more possible coplanar pairs can exist in this priority queue
                 break
 
-        # delete the original pairs
+        # delete the merged pairs
         for i in sorted(to_merge, reverse=True):
             del points[i]
             del bounds[i]
@@ -136,7 +137,7 @@ class CellComplex:
 
         self.planes = np.array(planes)
         self.bounds = np.array(bounds)
-        self.points = points
+        self.points = np.array(points, dtype=object)
 
     def prioritise_planes(self):
         """
