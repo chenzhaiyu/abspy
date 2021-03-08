@@ -69,6 +69,7 @@ class AdjacencyGraph:
         elif attribute == 'area_misalign':
             # area_misalign makes little sense as observed from the results
             logger.warning('attribute "area_misalign" is deprecated')
+
             # area of the mis-aligned regions from both cells
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
@@ -94,6 +95,7 @@ class AdjacencyGraph:
             for i, (m, n) in enumerate(self.graph.edges):
                 max_area = max(area)
                 # large misalignment -> should not cut here -> high cost
+
                 self.graph[m][n].update(
                     {'capacity': (area[i] / max_area if normalise else area[i]) * factor})
 
