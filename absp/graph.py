@@ -67,6 +67,8 @@ class AdjacencyGraph:
                     {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
 
         elif attribute == 'area_misalign':
+            # area_misalign makes little sense as observed from the results
+            logger.warning('attribute "area_misalign" is deprecated')
             # area of the mis-aligned regions from both cells
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
@@ -92,7 +94,6 @@ class AdjacencyGraph:
             for i, (m, n) in enumerate(self.graph.edges):
                 max_area = max(area)
                 # large misalignment -> should not cut here -> high cost
-                # todo: check otherwise
                 self.graph[m][n].update(
                     {'capacity': (area[i] / max_area if normalise else area[i]) * factor})
 
@@ -118,7 +119,7 @@ class AdjacencyGraph:
     def assign_weights_to_st_links(self, weights):
         """
         Assign weights to edges between each cell and the s-t nodes. weights is a dict in respect to each node.
-        the weights can be the occupancy probability or the signed distance of the cells
+        the weights can be the occupancy probability or the signed distance of the cells.
         """
         for i in self.uid:
             self.graph.add_edge(i, 's', capacity=weights[i])
