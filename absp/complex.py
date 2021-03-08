@@ -8,6 +8,9 @@ Prerequisites:
 
 from pathlib import Path
 from random import random as random_  # todo: assign mtl to obj
+import itertools
+import heapq
+from copy import copy
 
 import numpy as np
 from tqdm import tqdm
@@ -15,13 +18,14 @@ import networkx as nx
 from sage.all import polytopes, QQ, Polyhedron
 
 from .logger import attach_to_log
+from .primitive import VertexGroup
 
 logger = attach_to_log()
 
 
 class CellComplex:
 
-    def __init__(self, planes, bounds, initial_bound=None, build_graph=False):
+    def __init__(self, planes, bounds, points=None, initial_bound=None, build_graph=False):
         """
         :param planes: plana parameters. N * 4 array.
         :param bounds: corresponding bounding box bounds of the planar primitives. N * 2 * 3 array.
@@ -30,6 +34,7 @@ class CellComplex:
         """
         self.bounds = bounds  # numpy.array over RDF
         self.planes = planes  # numpy.array over RDF
+        self.points = points
 
         self.initial_bound = initial_bound if initial_bound else self._pad_bound(
             [np.amin(bounds[:, 0, :], axis=0), np.amax(bounds[:, 1, :], axis=0)],
@@ -52,6 +57,88 @@ class CellComplex:
         """
         return polytopes.cube(
             intervals=[[QQ(self.initial_bound[0][i]), QQ(self.initial_bound[1][i])] for i in range(3)])
+
+    def refine_planes(self, theta=10 * 3.1416 / 180, epsilon=0.001, normalise_normal=False):
+        """
+        Refine planar primitives. First, compute the angle of the supporting planes for each pair of planar primitives.
+        Then, starting from the pair with the smallest angle, test if the following two conditions are met:
+        First, the angle between is lower than a threshold. Second, more than a specified number of points lie on
+        both primitives. Merge the two primitives and fit a new plane if the conditions are satisfied.
+        """
+        if self.points is None:
+            raise ValueError('point coordinates are needed for plane refinement')
+        logger.info('refining planar primitives')
+
+        # shallow copy of the primitives
+        planes = list(copy(self.planes))
+        bounds = list(copy(self.bounds))
+        points = list(copy(self.points))
+
+        # pre-compute cosine of theta
+        theta_cos = np.cos(theta)
+
+        # priority queue storing pairwise planes and their angles
+        priority_queue = []
+
+        # compute angles and save them to the priority queue
+        for i, j in itertools.combinations(range(len(planes)), 2):
+            # no need to normalise as PCA in primitive.py already does it
+            angle_cos = np.abs(np.dot(planes[i][:3], planes[j][:3]))
+            if normalise_normal:
+                angle_cos /= (np.linalg.norm(planes[i][:3]) * np.linalg.norm(planes[j][:3]))
+            heapq.heappush(priority_queue, [-angle_cos, i, j])  # negate to use max-heap
+
+        # indices of planes to be merged
+        to_merge = set()
+
+        while priority_queue:
+            # the pair with smallest angle
+            pair = heapq.heappop(priority_queue)
+
+            if -pair[0] > theta_cos:  # negate back to use max-heap
+                # distance from the center of a primitive to the supporting plane of the other
+                distance = np.abs(
+                    np.dot((np.array(points[pair[1]]).mean(axis=0) - np.array(points[pair[2]]).mean(axis=0)),
+                           planes[pair[1]][:3]))
+
+                # assume normalised data so that epsilon can be an arbitrary number in (0, 1]
+                if distance < epsilon and pair[1] not in to_merge and pair[2] not in to_merge:
+                    # merge the two planes
+                    points_merged = np.concatenate([points[pair[1]], points[pair[2]]])
+                    planes_merged = VertexGroup.fit_plane(points_merged)
+                    bounds_merged = [np.min([bounds[pair[1]][0], bounds[pair[2]][0]], axis=0).tolist(),
+                                     np.max([bounds[pair[1]][1], bounds[pair[2]][1]], axis=0).tolist()]
+
+                    # update to_merge
+                    to_merge.update({pair[1]})
+                    to_merge.update({pair[2]})
+
+                    # push the merged plane into the heap
+                    for i, p in enumerate(planes):
+                        if i not in to_merge:
+                            angle_cos = np.abs(np.dot(planes_merged[:3], p[:3]))
+                            heapq.heappush(priority_queue, [-angle_cos, i, len(planes)])  # placeholder
+
+                    # update the actual data with the merged ones
+                    points.append(points_merged)
+                    bounds.append(bounds_merged)
+                    planes.append(planes_merged)
+
+            else:
+                # no more possible coplanar pairs can exist in this priority queue
+                break
+
+        # delete the merged pairs
+        for i in sorted(to_merge, reverse=True):
+            del points[i]
+            del bounds[i]
+            del planes[i]
+
+        logger.info('{} planes merged'.format(len(to_merge)))
+
+        self.planes = np.array(planes)
+        self.bounds = np.array(bounds)
+        self.points = np.array(points, dtype=object)
 
     def prioritise_planes(self):
         """
@@ -247,7 +334,7 @@ class CellComplex:
         return len(self.cells)
 
     @property
-    def num_plane(self):
+    def num_planes(self):
         # excluding the initial bounding box
         return len(self.planes)
 
@@ -264,7 +351,7 @@ class CellComplex:
             raise ValueError("expected 'mass' or 'centroid' as mode, got {}".format(location))
 
     def print_info(self):
-        logger.info('number of planes: {}'.format(self.num_plane))
+        logger.info('number of planes: {}'.format(self.num_planes))
         logger.info('number of cells: {}'.format(self.num_cells))
 
     def save_npy(self, filepath):
