@@ -7,10 +7,10 @@ Prerequisites:
 """
 
 from pathlib import Path
-from random import random as random_  # todo: assign mtl to obj
 import itertools
 import heapq
 from copy import copy
+from random import random, choices
 
 import numpy as np
 from tqdm import tqdm
@@ -322,9 +322,25 @@ class CellComplex:
         self.constructed = True
         logger.info('cell complex constructed')
 
-    def visualise(self):
+    def visualise(self, indices_cells=None, temp_dir='./'):
+        """
+        Visualise the cells using trimesh.
+        """
         if self.constructed:
-            raise NotImplementedError
+            import os
+            import string
+            try:
+                import trimesh
+                import pyglet
+            except ImportError:
+                logger.warning('trimesh/pyglet installation not found. skip visualisation')
+                return
+            temp_filename = ''.join(choices(string.ascii_uppercase + string.digits, k=5)) + '.obj'
+            self.save_obj(filepath=temp_dir + temp_filename, indices_cells=indices_cells, use_mtl=True)
+            scene = trimesh.load_mesh(temp_dir + temp_filename)
+            scene.show()
+            os.remove(temp_dir + temp_filename)
+            os.remove(temp_dir + 'colours.mtl')
         else:
             raise RuntimeError('cell complex has not been constructed')
 
@@ -367,6 +383,35 @@ class CellComplex:
         else:
             raise RuntimeError('cell complex has not been constructed')
 
+    @staticmethod
+    def _obj_str(cells, use_mtl=False):
+        """
+        Convert a list of cells into a string of obj format.
+        """
+        scene = None
+        for cell in cells:
+            scene += cell.render_solid()
+
+        # directly save the obj string from scene.obj() will bring the inverted facets
+        scene_obj = scene.obj_repr(scene.default_render_params())
+        scene_str = ''
+        material_str = ''
+
+        if use_mtl:
+            scene_str += 'mtllib colours.mtl\n'
+
+        for o in range(len(cells)):
+            scene_str += scene_obj[o][0] + '\n'
+
+            if use_mtl:
+                scene_str += scene_obj[o][1] + '\n'
+                material_str += 'newmtl ' + scene_obj[o][1].split()[1] + '\n'
+                material_str += 'Kd {:.3f} {:.3f} {:.3f}\n'.format(random(), random(), random())  # diffuse colour
+
+            scene_str += '\n'.join(scene_obj[o][2]) + '\n'
+            scene_str += '\n'.join(scene_obj[o][3]) + '\n'  # contents[o][4] are the interior facets
+        return scene_str, material_str
+
     def save_obj(self, filepath, indices_cells=None, use_mtl=False):
         """
         Save polygon soup of indexed convexes to an obj file.
@@ -378,24 +423,15 @@ class CellComplex:
             # create the dir if not exists
             filepath = Path(filepath)
             filepath.parent.mkdir(parents=True, exist_ok=True)
-            scene = None
 
             cells = [self.cells[i] for i in indices_cells] if indices_cells is not None else self.cells
-
-            for cell in cells:
-                scene += cell.render_solid()
+            scene_str, material_str = self._obj_str(cells, use_mtl=use_mtl)
 
             with open(filepath, 'w') as f:
-                # directly save the obj string from scene.obj() will bring the inverted facets
-                scene_obj = scene.obj_repr(scene.default_render_params())
-                scene_str = ''
-                for o in range(len(cells)):
-                    scene_str += scene_obj[o][0] + '\n'
-                    if use_mtl:
-                        scene_str + scene_obj[o][1] + '\n'
-                    scene_str += '\n'.join(scene_obj[o][2]) + '\n'
-                    scene_str += '\n'.join(scene_obj[o][3]) + '\n'  # contents[o][4] are the interior facets
                 f.writelines(scene_str)
+            if use_mtl:
+                with open(filepath.with_name('colours.mtl'), 'w') as f:
+                    f.writelines(material_str)
         else:
             raise RuntimeError('cell complex has not been constructed')
 

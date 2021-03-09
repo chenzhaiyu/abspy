@@ -13,7 +13,8 @@ def example_cell_complex():
     cell_complex.prioritise_planes()
     cell_complex.construct()
     cell_complex.print_info()
-    cell_complex.save_obj('../output/cells.obj')
+    cell_complex.visualise()
+    cell_complex.save_obj('../output/cells.obj', use_mtl=True)
     cell_complex.save_plm('../output/cells.plm')
 
 
