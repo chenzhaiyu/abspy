@@ -33,17 +33,17 @@ class AdjacencyGraph:
         radius = [None] * len(self.graph.edges)
         area = [None] * len(self.graph.edges)
         volume = [None] * len(self.graph.edges)
+        num_vertices = [None] * len(self.graph.edges)
 
         if attribute == 'radius_overlap':
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
                 interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
-                # the maximal distance from the center to a vertex -> inverted: penalising small radius
                 radius[i] = RR(interface.radius())
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_radius = max(radius)
-                # large overlapping radius -> should cut here (in favour of large outer surface) -> low cost
+                # small (sum of) overlapping radius -> large capacity -> small cost -> cut here
                 self.graph[m][n].update({'capacity': ((max_radius - radius[
                     i]) / max_radius if normalise else max_radius - radius[i]) * factor})
 
@@ -51,7 +51,6 @@ class AdjacencyGraph:
             for i, (m, n) in enumerate(self.graph.edges):
                 # compute interface
                 interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
-                # area of the overlap -> inverted: penalising small area
                 if engine == 'Qhull':
                     # 'volume' is the area of the convex hull when input points are 2-dimensional
                     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html
@@ -62,9 +61,26 @@ class AdjacencyGraph:
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_area = max(area)
-                # large overlapping area -> should cut here (in favour of large outer surface) -> low cost
-                self.graph[m][n].update(
-                    {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
+                # balloon term
+                # small (sum of) overlapping area -> large capacity -> small cost -> cut here
+                # todo: optimize more if volume/overlap is small (eliminate only the small protrusion and gaps)
+                # todo: normalized cut so that no penalty for #cells itself
+                # todo: adaptive threshold
+                if True:
+                    self.graph[m][n].update(
+                        {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
+
+        elif attribute == 'vertices_overlap':
+            # number of vertices on overlapping areas
+            for i, (m, n) in enumerate(self.graph.edges):
+                # compute interface
+                interface = cells[self._uid_to_index(m)].intersection(cells[self._uid_to_index(n)])
+                num_vertices[i] = interface.n_vertices()
+
+            for i, (m, n) in enumerate(self.graph.edges):
+                max_vertices = max(num_vertices)
+                # few number of vertices -> large capacity -> small cost -> cut here
+                self.graph[m][n].update({'capacity': ((max_vertices - num_vertices[i]) / max_vertices if normalise else max_vertices - num_vertices[i]) * factor})
 
         elif attribute == 'area_misalign':
             # area_misalign makes little sense as observed from the results
@@ -94,8 +110,6 @@ class AdjacencyGraph:
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_area = max(area)
-                # large misalignment -> should not cut here -> high cost
-
                 self.graph[m][n].update(
                     {'capacity': (area[i] / max_area if normalise else area[i]) * factor})
 
@@ -114,7 +128,7 @@ class AdjacencyGraph:
 
             for i, (m, n) in enumerate(self.graph.edges):
                 max_volume = max(volume)
-                # large difference -> should not cut here -> high cost
+                # large difference -> large capacity -> small cost -> cut here
                 self.graph[m][n].update(
                     {'capacity': (volume[i] / max_volume if normalise else volume[i]) * factor})
 

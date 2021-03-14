@@ -442,6 +442,10 @@ class CellComplex:
         :param indices_cells: indices of cells to save.
         """
         if self.constructed:
+            # create the dir if not exists
+            filepath = Path(filepath)
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+
             num_vertices = 0
             info_vertices = ''
             info_facets = ''
