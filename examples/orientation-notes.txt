@@ -1,0 +1,7 @@
+face.ambient_Vrepresentation()
+face.ambient_V_indices() 
+face.ambient_H_indices()
+face.vertices()
+
+https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/polyhedron/face.html?highlight=inequality
+https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/polyhedron/representation.html?highlight=inequality
