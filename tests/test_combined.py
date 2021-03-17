@@ -4,6 +4,11 @@ import random
 random.seed(100)
 
 
+def sigmoid(x):
+    # can safely ignore RuntimeWarning: overflow encountered in exp
+    return 1 / (1 + np.exp(-x))
+
+
 def example_combined():
     vertex_group = VertexGroup(filepath='./test_data/test_points.vg')
     planes, bounds, points = np.array(vertex_group.planes), np.array(vertex_group.bounds), np.array(
@@ -16,12 +21,17 @@ def example_combined():
     cell_complex.print_info()
 
     graph = AdjacencyGraph(cell_complex.graph)
-    weights_list = [random.random() for _ in range(cell_complex.num_cells)]
+
+    # provided by the neural network prediction
+    weights_list = np.array([random.random() for _ in range(cell_complex.num_cells)])
+    weights_list *= cell_complex.volumes(multiplier=10e5)
+    weights_list = sigmoid(weights_list)
+
     weights_dict = graph.to_dict(weights_list)
 
     graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap',
                                     factor=0.1, cache_interfaces=True)  # provided by the cell complex
-    graph.assign_weights_to_st_links(weights_dict)  # provided by the neural network prediction
+    graph.assign_weights_to_st_links(weights_dict)
     _, _ = graph.cut()
     graph.save_surface_obj(filepath='../output/surface.obj', cells=cell_complex.cells)
 

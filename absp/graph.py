@@ -170,10 +170,12 @@ class AdjacencyGraph:
         """
         Outer surface from interfaces between cells being cut.
         """
-        if self.reachable is None:
-            raise ValueError('no reachable cells')
-        elif self.non_reachable is None:
-            logger.warning('all cells marked as inside')
+        if not self.reachable:
+            logger.error('no reachable cells. aborting')
+            exit(1)
+        elif not self.non_reachable:
+            logger.error('no unreachable cells. aborting')
+            exit(1)
 
         surface = None
         surface_str = ''
