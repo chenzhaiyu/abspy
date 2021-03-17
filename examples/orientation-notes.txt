@@ -1,0 +1,15 @@
+face.ambient_Vrepresentation()
+face.ambient_V_indices() 
+face.ambient_H_indices()
+face.vertices()
+
+polyhedron.graph()
+polyhedron.vertex_graph()
+polyhedron.vertex_digraph()
+polyhedron.Vrepresentation()
+polyhedron.adjacency_matrix()
+polyhedron.vertex_adjacency_matrix()
+polyhedron.vertices_matrix()
+
+https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/polyhedron/face.html?highlight=inequality
+https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/polyhedron/representation.html?highlight=inequality

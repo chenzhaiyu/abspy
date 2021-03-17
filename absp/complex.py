@@ -15,7 +15,7 @@ from random import random, choices
 import numpy as np
 from tqdm import tqdm
 import networkx as nx
-from sage.all import polytopes, QQ, Polyhedron
+from sage.all import polytopes, QQ, RR, Polyhedron
 
 from .logger import attach_to_log
 from .primitive import VertexGroup
@@ -58,7 +58,7 @@ class CellComplex:
         return polytopes.cube(
             intervals=[[QQ(self.initial_bound[0][i]), QQ(self.initial_bound[1][i])] for i in range(3)])
 
-    def refine_planes(self, theta=10 * 3.1416 / 180, epsilon=0.001, normalise_normal=False):
+    def refine_planes(self, theta=10 * 3.1416 / 180, epsilon=0.005, normalise_normal=False):
         """
         Refine planar primitives. First, compute the angle of the supporting planes for each pair of planar primitives.
         Then, starting from the pair with the smallest angle, test if the following two conditions are met:
@@ -134,7 +134,7 @@ class CellComplex:
             del bounds[i]
             del planes[i]
 
-        logger.info('{} planes merged'.format(len(to_merge)))
+        logger.info('{} pairs of planes merged'.format(len(to_merge)))
 
         self.planes = np.array(planes)
         self.bounds = np.array(bounds)
@@ -193,6 +193,7 @@ class CellComplex:
         :param bound: bound of the query planar primitive. 2 * 3 array.
         :return: indices of existing cells whose bounds intersect with that of the query primitive.
         """
+        # todo: alpha-shape/convex hull to reduce unnecessary partitioning?
         cells_bounds = np.array(self.cells_bounds)  # easier array manipulation
         bound = self._pad_bound(bound, padding=0.05)
 
@@ -353,6 +354,14 @@ class CellComplex:
     def num_planes(self):
         # excluding the initial bounding box
         return len(self.planes)
+
+    def volumes(self, multiplier=1, engine='Qhull'):
+        # list of volumes
+        if engine == 'Qhull':
+            from scipy.spatial import ConvexHull
+            return [ConvexHull(cell.vertices_list()).volume * multiplier for cell in self.cells]
+        else:
+            return [RR(cell.volume()) * multiplier for cell in self.cells]
 
     def cell_representatives(self, location='center'):
         """
