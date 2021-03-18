@@ -72,7 +72,6 @@ class AdjacencyGraph:
                 max_area = max(area)
                 # balloon term
                 # small (sum of) overlapping area -> large capacity -> small cost -> cut here
-                # todo: optimize more if volume/overlap is small (eliminate only the small protrusion and gaps)
                 # todo: adaptive threshold
                 self.graph[m][n].update(
                     {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
@@ -184,7 +183,8 @@ class AdjacencyGraph:
 
     def save_surface_obj(self, filepath, cells=None, engine='rendering'):
         """
-        Outer surface from interfaces between cells being cut.
+        Save the outer surface to an OBJ file, from interfaces between cells being cut.
+        Optional engine can be 'rendering', 'sorting' or 'projection'.
         """
         if not self.reachable:
             logger.error('no reachable cells. aborting')
@@ -195,6 +195,11 @@ class AdjacencyGraph:
 
         if not self._cached_interfaces and not cells:
             logger.error('neither cached interfaces nor cells are available. aborting')
+            exit(1)
+
+        if engine not in {'rendering', 'sorting', 'projection'}:
+            logger.error('engine can be "rendering", "sorting" or "projection"')
+            exit(1)
 
         surface = None
         surface_str = ''
@@ -211,16 +216,6 @@ class AdjacencyGraph:
                 else:
                     interface = cells[self._uid_to_index(edge[0])].intersection(cells[self._uid_to_index(edge[1])])
 
-                if engine == 'rendering':
-                    surface += interface.render_solid()
-                else:
-                    for v in interface.vertices():
-                        surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
-                    vertex_indices = [i + num_vertices + 1 for i in
-                                      self._sorted_vertex_indices(interface.adjacency_matrix())]
-                    surface_str += 'f ' + ' '.join([str(f) for f in vertex_indices]) + '\n'
-                    num_vertices += len(vertex_indices)
-
             elif edge[1] in self.reachable and edge[0] in self.non_reachable:
                 # retrieve interface and orient as on edge[1]
                 if self._cached_interfaces:
@@ -230,15 +225,28 @@ class AdjacencyGraph:
                 else:
                     interface = cells[self._uid_to_index(edge[1])].intersection(cells[self._uid_to_index(edge[0])])
 
-                if engine == 'rendering':
-                    surface += interface.render_solid()
-                else:
-                    for v in interface.vertices():
-                        surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
-                    vertex_indices = [i + num_vertices + 1 for i in
-                                      self._sorted_vertex_indices(interface.adjacency_matrix())]
-                    surface_str += 'f ' + ' '.join([str(f) for f in vertex_indices]) + '\n'
-                    num_vertices += len(vertex_indices)
+            else:
+                # where no cut is made
+                continue
+
+            if engine == 'rendering':
+                surface += interface.render_solid()
+
+            elif engine == 'sorting':
+                for v in interface.vertices():
+                    surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
+                vertex_indices = [i + num_vertices + 1 for i in
+                                  self._sorted_vertex_indices(interface.adjacency_matrix())]
+                surface_str += 'f ' + ' '.join([str(f) for f in vertex_indices]) + '\n'
+                num_vertices += len(vertex_indices)
+
+            elif engine == 'projection':
+                projection = interface.projection()
+                polygon = projection.polygons[0]
+                for v in projection.coords:
+                    surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
+                surface_str += 'f ' + ' '.join([str(f + num_vertices + 1) for f in polygon]) + '\n'
+                num_vertices += len(polygon)
         
         if engine == 'rendering':
             surface_obj = surface.obj_repr(surface.default_render_params())
