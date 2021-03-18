@@ -24,8 +24,8 @@ def example_combined():
 
     # provided by the neural network prediction
     weights_list = np.array([random.random() for _ in range(cell_complex.num_cells)])
-    weights_list *= cell_complex.volumes(multiplier=10e5)
-    weights_list = sigmoid(weights_list)
+    weights_list *= cell_complex.volumes(multiplier=10e3)
+    # weights_list = sigmoid(weights_list)
 
     weights_dict = graph.to_dict(weights_list)
 
@@ -33,7 +33,7 @@ def example_combined():
                                     factor=0.1, cache_interfaces=True)  # provided by the cell complex
     graph.assign_weights_to_st_links(weights_dict)
     _, _ = graph.cut()
-    graph.save_surface_obj(filepath='../output/surface.obj', cells=cell_complex.cells)
+    graph.save_surface_obj(filepath='../output/surface.obj', engine='rendering')
 
 
 if __name__ == '__main__':

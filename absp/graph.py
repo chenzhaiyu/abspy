@@ -1,5 +1,6 @@
 from pathlib import Path
 import networkx as nx
+import numpy as np
 from sage.all import RR
 from scipy.spatial import ConvexHull
 
@@ -28,7 +29,8 @@ class AdjacencyGraph:
         else:
             raise NotImplementedError('file format not supported: {}'.format(filepath.suffix))
 
-    def assign_weights_to_n_links(self, cells, attribute='area_overlap', normalise=True, factor=1.0, engine='Qhull', cache_interfaces=False):
+    def assign_weights_to_n_links(self, cells, attribute='area_overlap', normalise=True, factor=1.0, engine='Qhull',
+                                  cache_interfaces=False):
         """
         Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
         """
@@ -166,7 +168,21 @@ class AdjacencyGraph:
         logger.info('number of extracted cells: {}'.format(len(reachable)))
         return cut_value, reachable
 
-    def save_surface_obj(self, filepath, cells):
+    @staticmethod
+    def _sorted_vertex_indices(adjacency_matrix):
+        pointer = 0
+        sorted_ = [pointer]
+        for _ in range(len(adjacency_matrix[0]) - 1):
+            connected = np.where(adjacency_matrix[pointer])[0]  # two elements
+            if connected[0] not in sorted_:
+                pointer = connected[0]
+                sorted_.append(connected[0])
+            else:
+                pointer = connected[1]
+                sorted_.append(connected[1])
+        return sorted_
+
+    def save_surface_obj(self, filepath, cells=None, engine='rendering'):
         """
         Outer surface from interfaces between cells being cut.
         """
@@ -177,8 +193,13 @@ class AdjacencyGraph:
             logger.error('no unreachable cells. aborting')
             exit(1)
 
+        if not self._cached_interfaces and not cells:
+            logger.error('neither cached interfaces nor cells are available. aborting')
+
         surface = None
         surface_str = ''
+        num_vertices = 0
+
         for edge in self.graph.edges:
             # facet is where one cell being outside and the other one being inside
             if edge[0] in self.reachable and edge[1] in self.non_reachable:
@@ -189,7 +210,16 @@ class AdjacencyGraph:
                         self._cached_interfaces[edge[1], edge[0]]
                 else:
                     interface = cells[self._uid_to_index(edge[0])].intersection(cells[self._uid_to_index(edge[1])])
-                surface += interface.render_solid()
+
+                if engine == 'rendering':
+                    surface += interface.render_solid()
+                else:
+                    for v in interface.vertices():
+                        surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
+                    vertex_indices = [i + num_vertices + 1 for i in
+                                      self._sorted_vertex_indices(interface.adjacency_matrix())]
+                    surface_str += 'f ' + ' '.join([str(f) for f in vertex_indices]) + '\n'
+                    num_vertices += len(vertex_indices)
 
             elif edge[1] in self.reachable and edge[0] in self.non_reachable:
                 # retrieve interface and orient as on edge[1]
@@ -199,13 +229,24 @@ class AdjacencyGraph:
                         self._cached_interfaces[edge[0], edge[1]]
                 else:
                     interface = cells[self._uid_to_index(edge[1])].intersection(cells[self._uid_to_index(edge[0])])
-                surface += interface.render_solid()
-        surface_obj = surface.obj_repr(surface.default_render_params())
 
-        for o in range(len(surface_obj)):
-            surface_str += surface_obj[o][0] + '\n'
-            surface_str += '\n'.join(surface_obj[o][2]) + '\n'
-            surface_str += '\n'.join(surface_obj[o][3]) + '\n'  # contents[o][4] are the interior facets
+                if engine == 'rendering':
+                    surface += interface.render_solid()
+                else:
+                    for v in interface.vertices():
+                        surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
+                    vertex_indices = [i + num_vertices + 1 for i in
+                                      self._sorted_vertex_indices(interface.adjacency_matrix())]
+                    surface_str += 'f ' + ' '.join([str(f) for f in vertex_indices]) + '\n'
+                    num_vertices += len(vertex_indices)
+        
+        if engine == 'rendering':
+            surface_obj = surface.obj_repr(surface.default_render_params())
+
+            for o in range(len(surface_obj)):
+                surface_str += surface_obj[o][0] + '\n'
+                surface_str += '\n'.join(surface_obj[o][2]) + '\n'
+                surface_str += '\n'.join(surface_obj[o][3]) + '\n'  # contents[o][4] are the interior facets
 
         # create the dir if not exists
         filepath = Path(filepath)
