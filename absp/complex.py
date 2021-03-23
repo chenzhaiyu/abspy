@@ -11,6 +11,7 @@ import itertools
 import heapq
 from copy import copy
 from random import random, choices
+import time
 
 import numpy as np
 from tqdm import tqdm
@@ -240,6 +241,7 @@ class CellComplex:
         * partition the potential cell into two. rewind if partition fails.
         """
         logger.info('constructing cell complex')
+        tik = time.time()
 
         for i, bound in enumerate(tqdm(self.bounds)):  # kinetic for each primitive
             # bounding box intersection test
@@ -324,7 +326,7 @@ class CellComplex:
                     self.graph.remove_node(list(self.graph.nodes)[index_parent])
 
         self.constructed = True
-        logger.info('cell complex constructed')
+        logger.info('cell complex constructed: {:.2f} s'.format(time.time() - tik))
 
     def visualise(self, indices_cells=None, temp_dir='./'):
         """

@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 import networkx as nx
 import numpy as np
 from sage.all import RR
@@ -156,6 +157,7 @@ class AdjacencyGraph:
         """
         Perform cutting operation.
         """
+        tik = time.time()
         cut_value, partition = nx.algorithms.flow.minimum_cut(self.graph, 's', 't')
         reachable, non_reachable = partition
         reachable.remove('s')
@@ -163,7 +165,8 @@ class AdjacencyGraph:
         self.reachable = reachable
         self.non_reachable = non_reachable
 
-        logger.info('cut_value: {}'.format(cut_value))
+        logger.info('cut performed: {:.2f} s'.format(time.time() - tik))
+        logger.info('cut_value: {:.2f}'.format(cut_value))
         logger.info('number of extracted cells: {}'.format(len(reachable)))
         return cut_value, reachable
 
@@ -204,6 +207,7 @@ class AdjacencyGraph:
         surface = None
         surface_str = ''
         num_vertices = 0
+        tik = time.time()
 
         for edge in self.graph.edges:
             # facet is where one cell being outside and the other one being inside
@@ -255,6 +259,8 @@ class AdjacencyGraph:
                 surface_str += surface_obj[o][0] + '\n'
                 surface_str += '\n'.join(surface_obj[o][2]) + '\n'
                 surface_str += '\n'.join(surface_obj[o][3]) + '\n'  # contents[o][4] are the interior facets
+
+        logger.info('surface extracted: {:.2f} s'.format(time.time() - tik))
 
         # create the dir if not exists
         filepath = Path(filepath)
