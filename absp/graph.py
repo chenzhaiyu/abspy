@@ -191,18 +191,18 @@ class AdjacencyGraph:
         """
         if not self.reachable:
             logger.error('no reachable cells. aborting')
-            exit(1)
+            return
         elif not self.non_reachable:
             logger.error('no unreachable cells. aborting')
-            exit(1)
+            return
 
         if not self._cached_interfaces and not cells:
             logger.error('neither cached interfaces nor cells are available. aborting')
-            exit(1)
+            return
 
         if engine not in {'rendering', 'sorting', 'projection'}:
             logger.error('engine can be "rendering", "sorting" or "projection"')
-            exit(1)
+            return
 
         surface = None
         surface_str = ''

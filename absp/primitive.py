@@ -66,6 +66,8 @@ class VertexGroup:
         for i, p in enumerate(primitives):
             points = self.points[np.fromstring(p, sep=' ').astype(np.int64)]
             param = self.fit_plane(points, mode='PCA')
+            if param is None:
+                continue
             params.append(param)
             bounds.append(self._points_bound(points))
             groups.append(points)
@@ -135,6 +137,9 @@ class VertexGroup:
         :return: fitted parameters
         """
         assert mode == 'PCA' or mode == 'LSA'
+        if len(points) < 3:
+            logger.warning('plane fitting skipped with #points={}'.format(len(points)))
+            return None
         if mode == 'LSA':
             # AX = B
             logger.warning('LSA introduces distortions when the plane crosses the origin')
