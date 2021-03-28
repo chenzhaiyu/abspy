@@ -11,6 +11,7 @@ def sigmoid(x):
 
 def example_combined():
     vertex_group = VertexGroup(filepath='./test_data/test_points.vg')
+    vertex_group.normalise_to_centroid_and_scale()
     planes, bounds, points = np.array(vertex_group.planes), np.array(vertex_group.bounds), np.array(
         vertex_group.points_grouped, dtype=object)
 

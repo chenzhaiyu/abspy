@@ -115,10 +115,10 @@ class VertexGroup:
         # offset = np.mean(points, axis=0)
         # denominator = np.max(np.ptp(points, axis=0)) / scale
         ######################################################
-        center = np.min(self.points, axis=0) + np.ptp(self.points, axis=0) / 2
+        bounds = np.ptp(self.points, axis=0)
+        center = np.min(self.points, axis=0) + bounds / 2
         offset = center
-        denominator = 1 / scale
-        self.points = (self.points - offset) / denominator + centroid
+        self.points = (self.points - offset) / (bounds.max() * scale) + centroid
 
         # update planes and bounds as point coordinates has changed
         self.planes, self.bounds, self.points_grouped = self.get_primitives()
@@ -138,7 +138,7 @@ class VertexGroup:
         """
         assert mode == 'PCA' or mode == 'LSA'
         if len(points) < 3:
-            logger.warning('plane fitting skipped with #points={}'.format(len(points)))
+            logger.warning('plane fitting skipped given #points={}'.format(len(points)))
             return None
         if mode == 'LSA':
             # AX = B
