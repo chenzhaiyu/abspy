@@ -5,7 +5,7 @@ import numpy as np
 from sage.all import RR
 from scipy.spatial import ConvexHull
 
-from absp import attach_to_log
+from .logger import attach_to_log
 
 logger = attach_to_log()
 
