@@ -26,7 +26,7 @@ logger = attach_to_log()
 
 class CellComplex:
 
-    def __init__(self, planes, bounds, points=None, initial_bound=None, build_graph=False):
+    def __init__(self, planes, bounds, points=None, initial_bound=None, initial_padding=0.0, build_graph=False):
         """
         :param planes: plana parameters. N * 4 array.
         :param bounds: corresponding bounding box bounds of the planar primitives. N * 2 * 3 array.
@@ -39,7 +39,7 @@ class CellComplex:
 
         self.initial_bound = initial_bound if initial_bound else self._pad_bound(
             [np.amin(bounds[:, 0, :], axis=0), np.amax(bounds[:, 1, :], axis=0)],
-            padding=0.20)
+            padding=initial_padding)  # no extra padding by default
         self.cells = [self._construct_initial_cell()]  # list of QQ
         self.cells_bounds = [self.cells[0].bounding_box()]  # list of QQ
 
