@@ -26,20 +26,25 @@ logger = attach_to_log()
 
 class CellComplex:
 
-    def __init__(self, planes, bounds, points=None, initial_bound=None, initial_padding=0.0, build_graph=False):
+    def __init__(self, planes, bounds, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
+                 build_graph=False):
         """
         :param planes: plana parameters. N * 4 array.
         :param bounds: corresponding bounding box bounds of the planar primitives. N * 2 * 3 array.
         :param initial_bound: optional. initial bound to partition. 2 * 3 array or None.
         :param build_graph: optional. build the cell adjacency graph if set True.
+        :param additional_planes: optional. missing planes due to occlusion or incapacity of RANSAC.
         """
         self.bounds = bounds  # numpy.array over RDF
         self.planes = planes  # numpy.array over RDF
         self.points = points
 
+        # missing planes due to occlusion or incapacity of RANSAC
+        self.additional_planes = additional_planes
+
         self.initial_bound = initial_bound if initial_bound else self._pad_bound(
             [np.amin(bounds[:, 0, :], axis=0), np.amax(bounds[:, 1, :], axis=0)],
-            padding=initial_padding)  # no extra padding by default
+            padding=initial_padding)
         self.cells = [self._construct_initial_cell()]  # list of QQ
         self.cells_bounds = [self.cells[0].bounding_box()]  # list of QQ
 
@@ -69,6 +74,8 @@ class CellComplex:
         if self.points is None:
             raise ValueError('point coordinates are needed for plane refinement')
         logger.info('refining planar primitives')
+        if self.additional_planes:
+            logger.warning('additional planes are not refined')
 
         # shallow copy of the primitives
         planes = list(copy(self.planes))
@@ -165,6 +172,12 @@ class CellComplex:
         self.planes = self.planes[indices_priority]
         self.bounds = self.bounds[indices_priority]
 
+        # append additional planes with highest priority
+        if self.additional_planes:
+            self.planes = np.concatenate([self.additional_planes, self.planes], axis=0)
+            additional_bounds = [[[-np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf]]] * len(self.additional_planes)
+            self.bounds = np.concatenate([additional_bounds, self.bounds], axis=0)  # never miss an intersection
+
         logger.debug('ordered planes: {}'.format(self.planes))
         logger.debug('ordered bounds: {}'.format(self.bounds))
 
@@ -179,6 +192,7 @@ class CellComplex:
         """
         :return: the indices by which the planar primitives are sorted based on their bounding box volume.
         """
+        # todo: area (alpha shape or projection) instead of volume
         volume = np.prod(self.bounds[:, 1, :] - self.bounds[:, 0, :], axis=1)
         return np.argsort(volume)
 
@@ -197,6 +211,9 @@ class CellComplex:
         :param bound: bound of the query planar primitive. 2 * 3 array.
         :return: indices of existing cells whose bounds intersect with that of the query primitive.
         """
+        if bound[0][0] == -np.inf:
+            return np.arange(len(self.cells_bounds))
+
         # todo: alpha-shape/convex hull to reduce unnecessary partitioning?
         cells_bounds = np.array(self.cells_bounds)  # easier array manipulation
         bound = self._pad_bound(bound, padding=0.05)
@@ -246,7 +263,7 @@ class CellComplex:
         for i, bound in enumerate(tqdm(self.bounds)):  # kinetic for each primitive
             # bounding box intersection test
             indices_cells = self._bbox_intersect(bound)  # indices of existing cells with potential intersections
-            assert len(indices_cells), 'intersection failed! check the specified initial bound'
+            assert len(indices_cells), 'intersection failed! check the initial bound'
 
             # half-spaces defined by inequalities
             # no change_ring() here (instead, QQ() in _inequalities) speeds up 10x

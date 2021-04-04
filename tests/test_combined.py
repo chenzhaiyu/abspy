@@ -15,7 +15,8 @@ def example_combined():
     planes, bounds, points = np.array(vertex_group.planes), np.array(vertex_group.bounds), np.array(
         vertex_group.points_grouped, dtype=object)
 
-    cell_complex = CellComplex(planes, bounds, points, build_graph=True)
+    additional_planes = [[0, 0, 1, -bounds[:, 0, 2].min()]]  # the bottom of the points (z = d)
+    cell_complex = CellComplex(planes, bounds, points, build_graph=True, additional_planes=additional_planes)
     cell_complex.refine_planes()
     cell_complex.prioritise_planes()
     cell_complex.construct()
