@@ -21,6 +21,7 @@ def example_combined():
     cell_complex.prioritise_planes()
     cell_complex.construct()
     cell_complex.print_info()
+    cell_complex.visualise()
 
     graph = AdjacencyGraph(cell_complex.graph)
 

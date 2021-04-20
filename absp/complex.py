@@ -14,7 +14,7 @@ from random import random, choices
 import time
 
 import numpy as np
-from tqdm import tqdm
+from tqdm import trange
 import networkx as nx
 from sage.all import polytopes, QQ, RR, Polyhedron
 
@@ -193,6 +193,9 @@ class CellComplex:
         :return: the indices by which the planar primitives are sorted based on their bounding box volume.
         """
         # todo: area (alpha shape or projection) instead of volume
+        # project the points supporting each plane onto the plane
+        # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
+
         volume = np.prod(self.bounds[:, 1, :] - self.bounds[:, 0, :], axis=1)
         return np.argsort(volume)
 
@@ -209,25 +212,42 @@ class CellComplex:
     def _bbox_intersect(self, bound, plane, padding=None):
         """
         :param bound: bound of the query planar primitive. 2 * 3 array.
-        :return: indices of existing cells whose bounds intersect with that of the query primitive.
+        :param plane: plane parameters.
+        :param padding: optional. padding for existing cells.
+        :return: indices of existing cells whose bounds intersect with bounds of the query primitive
+            and intersect with the supporting plane of the primitive.
         """
-        if bound[0][0] == -np.inf:
-            return np.arange(len(self.cells_bounds))
 
         # todo: alpha-shape/convex hull to reduce unnecessary partitioning?
+        # each planar primitive partitions only the 3D cells that intersect with it
         cells_bounds = np.array(self.cells_bounds)  # easier array manipulation
-        # intersection with existing cell AABB
-        center_query = np.mean(bound, axis=0)  # 3,
         if padding:
             bound = self._pad_bound(bound, padding=padding)
         center_targets = np.mean(cells_bounds, axis=1)  # N * 3
-        center_distance = np.abs(center_query - center_targets)  # N * 3
-
-        extent_query = bound[1] - bound[0]  # 3,
         extent_targets = cells_bounds[:, 1, :] - cells_bounds[:, 0, :]  # N * 3
 
-        # abs(center_distance) * 2 < (query extent + target extent) for every dimension -> intersection
-        return np.where(np.all(center_distance * 2 < extent_query + extent_targets, axis=1))[0]
+        if bound[0][0] == -np.inf:
+            intersection_bound = np.arange(len(self.cells_bounds))
+
+        else:
+            # intersection with existing cell AABB
+            center_query = np.mean(bound, axis=0)  # 3,
+            center_distance = np.abs(center_query - center_targets)  # N * 3
+            extent_query = bound[1] - bound[0]  # 3,
+
+            # abs(center_distance) * 2 < (query extent + target extent) for every dimension -> intersection
+            intersection_bound = np.where(np.all(center_distance * 2 < extent_query + extent_targets, axis=1))[0]
+
+        # plane-AABB intersection test from extracted intersection_bound only
+        # https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
+        # compute the projection interval radius of AABB onto L(t) = center + t * normal
+        radius = np.dot(extent_targets[intersection_bound] / 2, np.abs(plane[:3]))
+        # compute distance of box center from plane
+        distance = np.dot(center_targets[intersection_bound], plane[:3]) + plane[3]
+        # intersection between plane and AABB occurs when distance falls within [-radius, +radius] interval
+        intersection_plane = np.where(np.abs(distance) <= radius)[0]
+
+        return intersection_bound[intersection_plane]
 
     @staticmethod
     def _inequalities(plane):
@@ -260,9 +280,10 @@ class CellComplex:
         logger.info('constructing cell complex')
         tik = time.time()
 
-        for i, bound in enumerate(tqdm(self.bounds)):  # kinetic for each primitive
+        for i in trange(len(self.bounds)):  # kinetic for each primitive
             # bounding box intersection test
-            indices_cells = self._bbox_intersect(bound)  # indices of existing cells with potential intersections
+            # indices of existing cells with potential intersections
+            indices_cells = self._bbox_intersect(self.bounds[i], self.planes[i])
             assert len(indices_cells), 'intersection failed! check the initial bound'
 
             # half-spaces defined by inequalities
