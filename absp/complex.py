@@ -188,16 +188,21 @@ class CellComplex:
         slope_squared = (self.planes[:, 0] ** 2 + self.planes[:, 1] ** 2) / (self.planes[:, 2] ** 2 + epsilon)
         return np.where(slope_squared > slope_threshold ** 2)[0]
 
-    def _sort_planes(self):
+    def _sort_planes(self, mode='norm'):
         """
         :return: the indices by which the planar primitives are sorted based on their bounding box volume.
         """
-        # todo: area (alpha shape or projection) instead of volume
-        # project the points supporting each plane onto the plane
-        # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
-
-        volume = np.prod(self.bounds[:, 1, :] - self.bounds[:, 0, :], axis=1)
-        return np.argsort(volume)
+        if mode == 'volume':
+            volume = np.prod(self.bounds[:, 1, :] - self.bounds[:, 0, :], axis=1)
+            return np.argsort(volume)[::-1]
+        elif mode == 'norm':
+            sizes = np.linalg.norm(self.bounds[:, 1, :] - self.bounds[:, 0, :], ord=2, axis=1)
+            return np.argsort(sizes)[::-1]
+        else:
+            # todo: sort area
+            # project the points supporting each plane onto the plane
+            # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
+            raise NotImplementedError
 
     @staticmethod
     def _pad_bound(bound, padding=0.00):
