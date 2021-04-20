@@ -197,7 +197,7 @@ class CellComplex:
         return np.argsort(volume)
 
     @staticmethod
-    def _pad_bound(bound, padding=0.05):
+    def _pad_bound(bound, padding=0.00):
         """
         :param bound: bound of the query planar primitive. 2 * 3 array.
         :param padding: optional. padding factor. float. defaults to 0.05.
@@ -206,7 +206,7 @@ class CellComplex:
         extent = bound[1] - bound[0]
         return [bound[0] - extent * padding, bound[1] + extent * padding]
 
-    def _bbox_intersect(self, bound):
+    def _bbox_intersect(self, bound, plane, padding=None):
         """
         :param bound: bound of the query planar primitive. 2 * 3 array.
         :return: indices of existing cells whose bounds intersect with that of the query primitive.
@@ -216,10 +216,10 @@ class CellComplex:
 
         # todo: alpha-shape/convex hull to reduce unnecessary partitioning?
         cells_bounds = np.array(self.cells_bounds)  # easier array manipulation
-        bound = self._pad_bound(bound, padding=0.05)
-
         # intersection with existing cell AABB
         center_query = np.mean(bound, axis=0)  # 3,
+        if padding:
+            bound = self._pad_bound(bound, padding=padding)
         center_targets = np.mean(cells_bounds, axis=1)  # N * 3
         center_distance = np.abs(center_query - center_targets)  # N * 3
 
