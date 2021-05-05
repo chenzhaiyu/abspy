@@ -184,8 +184,8 @@ class VertexGroup:
         """
         with open(filepath, 'w') as fout:
             logger.info('writing plane parameters into {}'.format(filepath))
-            outs = [''.join(str(n) + ' ' for n in line.tolist()) + '\n' for line in self.planes]
-            fout.writelines(outs)
+            out = [''.join(str(n) + ' ' for n in line.tolist()) + '\n' for line in self.planes]
+            fout.writelines(out)
 
     def save_planes_npy(self, filepath):
         """
@@ -200,3 +200,107 @@ class VertexGroup:
         """
         logger.info('writing plane bounds into {}'.format(filepath))
         np.save(filepath, self.bounds)
+
+
+class VertexGroupReference:
+    """
+    Reference vertex group sampled from meshes.
+    """
+
+    def __init__(self, filepath, process=True):
+        """
+        :param filepath: filepath to a mesh
+        :param process: optional. Immediate processing if set True.
+        """
+        import trimesh
+
+        self.filepath = filepath
+        self.processed = False
+        self.points = None
+        self.planes = []
+        self.bounds = []
+        self.points_grouped = []
+
+        self.mesh = trimesh.load_mesh(self.filepath)
+
+        if process:
+            self.process()
+
+    @staticmethod
+    def _points_bound(points):
+        """
+        :return: bounds (AABB) of the points. 2 * 3 array.
+        """
+        return np.array([np.amin(points, axis=0), np.amax(points, axis=0)])
+
+    def process(self, num=10000):
+        from functools import reduce
+
+        # sample on all faces
+        samples, face_indices = self.mesh.sample(count=num, return_index=True)  # face_indices match facets
+
+        for facet in self.mesh.facets:  # a list of face indices for coplanar adjacent faces
+
+            # group corresponding samples by facet
+            points = []
+            for face_index in facet:
+                sample_indices = np.where(face_indices == face_index)[0]
+                if len(sample_indices) > 0:
+                    points.append(samples[sample_indices])
+
+            # vertices
+            vertices = reduce(np.union1d, self.mesh.faces[facet])  # indices of vertices
+            vertices = self.mesh.vertices[vertices]  # coordinates of vertices
+
+            # append vertices in case there is no sampled points in this group
+            points.append(vertices)
+            points = np.concatenate(points)
+
+            # calculate parameters
+            plane = VertexGroup.fit_plane(vertices)
+            self.planes.append(plane)
+            self.bounds.append(self._points_bound(vertices))
+            self.points_grouped.append(points)
+        self.points = np.concatenate(self.points_grouped)
+
+    def save_vg(self, filepath):
+        """
+        Save primitives into a vg file.
+        """
+        from random import random
+        assert self.planes and self.points_grouped
+
+        # points
+        out = ''
+        out += 'num_points: {}\n'.format(len(self.points))
+        for i in self.points.flatten():
+            # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
+            out += ' ' + str(i)
+
+        # normals
+        out += '\nnum_normals: {}\n'.format(len(self.points))
+        for i, group in enumerate(self.points_grouped):
+            # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
+            for _ in group:
+                out += '{} {} {} '.format(*self.planes[i][:3])
+
+        # colors (no color needed)
+        out += '\nnum_colors: {}\n'.format(0)
+
+        # primitives
+        out += '\nnum_groups: {}\n'.format(len(self.points_grouped))
+        j_base = 0
+        for i, group in enumerate(self.points_grouped):
+            out += 'group_type: {}\n'.format(0)
+            out += 'num_group_parameters: {}\n'.format(4)
+            out += 'group_parameters: {} {} {} {}\n'.format(*self.planes[i])
+            out += 'group_label: group_{}\n'.format(i)
+            out += 'group_color: {} {} {}\n'.format(random(), random(), random())
+            out += 'group_num_point: {}\n'.format(len(self.points_grouped[i]))
+            for j in range(j_base, j_base + len(self.points_grouped[i])):
+                out += '{} '.format(j)
+            j_base += len(self.points_grouped[i])
+            out += '\nnum_children: {}\n'.format(0)
+
+        with open(filepath, 'w') as fout:
+            fout.writelines(out)
