@@ -524,7 +524,7 @@ class CellComplex:
                     info_vertices += '\n'.join([st[2:] for st in contents[o][2]]) + '\n'
                     info_facets += str(len(contents[o][3])) + '\n'
                     for st in contents[o][3]:
-                        info_facets += '\n'.join(str(len(st[2:].split()))) + ' '  # number of vertices on this facet
+                        info_facets += str(len(st[2:].split())) + ' '  # number of vertices on this facet
                         info_facets += ' '.join([str(int(n) - 1) for n in st[2:].split()]) + '\n'
                 f.writelines(info_header + info_vertices + info_facets)
 
