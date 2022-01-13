@@ -1,0 +1,47 @@
+from pathlib import Path
+
+from pyabsp import VertexGroup, AdjacencyGraph, CellComplex
+import numpy as np
+import random
+random.seed(100)
+
+dir_tests= Path(__file__).parent
+
+
+def sigmoid(x):
+    # can safely ignore RuntimeWarning: overflow encountered in exp
+    return 1 / (1 + np.exp(-x))
+
+
+def example_combined():
+    vertex_group = VertexGroup(filepath=dir_tests / 'test_data' / 'test_points.vg')
+    vertex_group.normalise_to_centroid_and_scale()
+    planes, bounds, points = np.array(vertex_group.planes), np.array(vertex_group.bounds), np.array(
+        vertex_group.points_grouped, dtype=object)
+
+    additional_planes = [[0, 0, 1, -bounds[:, 0, 2].min()]]  # the bottom of the points (z = d)
+    cell_complex = CellComplex(planes, bounds, points, build_graph=True, additional_planes=additional_planes)
+    cell_complex.refine_planes()
+    cell_complex.prioritise_planes()
+    cell_complex.construct()
+    cell_complex.print_info()
+    cell_complex.visualise()
+
+    graph = AdjacencyGraph(cell_complex.graph)
+
+    # provided by the neural network prediction
+    weights_list = np.array([random.random() for _ in range(cell_complex.num_cells)])
+    weights_list *= cell_complex.volumes(multiplier=10e5)
+    # weights_list = sigmoid(weights_list)  # uncomment for building data
+
+    weights_dict = graph.to_dict(weights_list)
+
+    graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap',
+                                    factor=0.1, cache_interfaces=True)  # provided by the cell complex
+    graph.assign_weights_to_st_links(weights_dict)
+    _, _ = graph.cut()
+    graph.save_surface_obj(filepath=dir_tests / 'test_output' / 'surface.obj', engine='rendering')
+
+
+if __name__ == '__main__':
+    example_combined()
