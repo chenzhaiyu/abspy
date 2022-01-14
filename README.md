@@ -1,6 +1,6 @@
 # abspy: a Python tool for 3D adaptive binary space partitioning and beyond
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)[![PyPI version](https://badge.fury.io/py/abspy.svg)](https://pypi.python.org/pypi/abspy/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PyPI version](https://badge.fury.io/py/abspy.svg)](https://pypi.python.org/pypi/abspy/)
 
 ## Introduction
 
@@ -11,6 +11,20 @@ This repository implements adaptive binary space partitioning: an ambient 3D spa
 An exact kernel of [SageMath](https://www.sagemath.org/) is used for robust Boolean spatial operations. This rational-based representation help avoid degenerate cases that may otherwise result in inconsistencies in the geometry.
 
 ## Installation
+
+### Install requirements
+
+All dependencies except for [SageMath](https://www.sagemath.org/) can be easily installed with [PyPI](https://pypi.org/):
+
+```bash
+pip install -r requirements.txt
+```
+
+Optionally, install [trimesh](https://github.com/mikedh/trimesh) and [pyglet](https://github.com/pyglet/pyglet) for benchmarking and visualisation, respectively:
+
+```bash
+pip install trimesh pyglet
+```
 
 ### Install SageMath
 
@@ -30,18 +44,6 @@ mamba install sage
 ```
 
 For Windows users, consider building SageMath from source or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html).
-
-### Install other requirements
-
-```bash
-pip install -r requirements.txt
-```
-
-Optionally, install [trimesh](https://github.com/mikedh/trimesh) and [pyglet](https://github.com/pyglet/pyglet) for benchmarking and visualisation, respectively:
-
-```bash
-pip install trimesh pyglet
-```
 
 ### Install pyabsp
 
@@ -122,3 +124,4 @@ If you use pyabsp in a scientific work, please cite:
   year={2021}
 }
 ```
+
