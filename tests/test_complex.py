@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import numpy as np
-from pyabsp import CellComplex
+from abspy import CellComplex
 
 dir_tests= Path(__file__).parent
 

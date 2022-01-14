@@ -8,9 +8,9 @@ import glob
 import time
 from pathlib import Path
 
-from absp import attach_to_log
-from absp import VertexGroup
-from absp import CellComplex
+from abspy import attach_to_log
+from abspy import VertexGroup
+from abspy import CellComplex
 
 logger = attach_to_log(filepath='benchmark.log')
 

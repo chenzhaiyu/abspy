@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pyabsp import AdjacencyGraph
+from abspy import AdjacencyGraph
 import networkx as nx
 
 dir_tests= Path(__file__).parent

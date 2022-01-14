@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pyabsp import VertexGroup, AdjacencyGraph, CellComplex
+from abspy import VertexGroup, AdjacencyGraph, CellComplex
 import numpy as np
 import random
 random.seed(100)

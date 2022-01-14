@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pyabsp import VertexGroup, VertexGroupReference
+from abspy import VertexGroup, VertexGroupReference
 
 dir_tests= Path(__file__).parent
 
