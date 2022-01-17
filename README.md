@@ -1,12 +1,12 @@
-# abspy: a Python tool for 3D adaptive binary space partitioning and beyond
+<img align="left" src="https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/logo.svg" width="480">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PyPI version](https://badge.fury.io/py/abspy.svg)](https://pypi.python.org/pypi/abspy/)
 
 ## Introduction
 
-This repository implements adaptive binary space partitioning: an ambient 3D space is recessively partitioned into non-overlapping convexes with pre-detected planar primitives. It is implemented initially for surface reconstruction, but can be extrapolated to other applications nevertheless.
+**abspy** is a Python tool for 3D adaptive binary space partitioning and beyond: an ambient 3D space is recessively partitioned into non-overlapping convexes with pre-detected planar primitives, where the adjacency graph is dynamically obtained. It is implemented initially for surface reconstruction, but can be extrapolated to other applications nevertheless.
 
-![docs/partition.png](./docs/partition.png)
+![partition](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/partition.png)
 
 An exact kernel of [SageMath](https://www.sagemath.org/) is used for robust Boolean spatial operations. This rational-based representation help avoid degenerate cases that may otherwise result in inconsistencies in the geometry.
 
@@ -45,7 +45,9 @@ mamba install sage
 
 For Windows users, consider building SageMath from source or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html).
 
-### Install pyabsp
+### Install abspy
+
+**abspy** can be found and installed via [PyPI](https://pypi.org/project/abspy/):
 
 ```bash
 pip install abspy
@@ -53,7 +55,7 @@ pip install abspy
 
 ## Quick start
 
-Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph and extracting the outer surface of the object. For the data structure of a `.vg` file, please refer to [VertexGroup](./doc/vertexgroup.md).
+Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph and extracting the outer surface of the object. For the data structure of a `.vg` file, please refer to [VertexGroup](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/vertexgroup.md).
 
 ```python
 import numpy as np
@@ -109,12 +111,25 @@ _, _ = graph.cut()
 graph.save_surface_obj('surface.obj', engine='rendering')
 ```
 
+## Misc
+
+* **Why adaptive?**
+
+Adaptive space partitioning can significantly reduce computations for cell complex creation, compared to an exhaustive partitioning strategy. The excessive number of cells not only hinders computation but also inclines to defective surfaces on subtle structures where inaccurate labels are more likely to be assigned.
+
+![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/adaptive.png)
+
+* **What weights to assign to the adjacency graph?**
+
+There are two kinds of weights to assign to an S-T graph: either to *n-links* or to *st-links*. For surface reconstruction using [graph-cut](https://en.wikipedia.org/wiki/Cut_(graph_theory)), assign the predicted probability of occupancy for each cell to the *st-links*, while assign overlap area to the *n-links*. Read this [paper](https://arxiv.org/pdf/2112.13142.pdf) for more information on this Markov random field formulation.
+
 ## License
-[MIT](./LICENSE)
+
+[MIT](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/LICENSE)
 
 ## Citation
 
-If you use pyabsp in a scientific work, please cite:
+If you use abspy in a scientific work, please cite:
 
 ```latex
 @article{chen2021reconstructing,
@@ -124,4 +139,3 @@ If you use pyabsp in a scientific work, please cite:
   year={2021}
 }
 ```
-
