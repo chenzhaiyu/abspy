@@ -28,7 +28,7 @@ API Reference
 
     .. autofunction:: abspy.VertexGroupReference.process
 
-    .. autofunction:: abspy.VertexGroup.save_vg
+    .. autofunction:: abspy.VertexGroupReference.save_vg
 
 
 .. autoclass:: abspy.CellComplex
@@ -41,9 +41,9 @@ API Reference
 
     .. autofunction:: abspy.CellComplex.visualise
 
-    .. autofunction:: abspy.CellComplex.num_cells
+    .. autoproperty:: abspy.CellComplex.num_cells
 
-    .. autofunction:: abspy.CellComplex.num_planes
+    .. autoproperty:: abspy.CellComplex.num_planes
 
     .. autofunction:: abspy.CellComplex.volumes
 

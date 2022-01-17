@@ -399,16 +399,22 @@ class CellComplex:
 
     @property
     def num_cells(self):
-        # number of cells in the complex
+        """
+        number of cells in the complex.
+        """
         return len(self.cells)
 
     @property
     def num_planes(self):
-        # excluding the initial bounding box
+        """
+        number of cells in the complex, excluding the initial bounding box.
+        """
         return len(self.planes)
 
     def volumes(self, multiplier=1, engine='Qhull'):
-        # list of volumes
+        """
+        list of volumes.
+        """
         if engine == 'Qhull':
             from scipy.spatial import ConvexHull
             volumes = [None for _ in range(len(self.cells))]
@@ -425,8 +431,8 @@ class CellComplex:
 
     def cell_representatives(self, location='center'):
         """
-        :param location: 'center' represents the average of the vertices of the polyhedron;
-        'centroid' represents the center of mass/volume.
+        Return representatives of the cells in the complex. 
+        :param location: 'center' represents the average of the vertices of the polyhedron, 'centroid' represents the center of mass/volume.
         """
         if location == 'center':
             return [cell.center() for cell in self.cells]
@@ -436,6 +442,9 @@ class CellComplex:
             raise ValueError("expected 'mass' or 'centroid' as mode, got {}".format(location))
 
     def print_info(self):
+        """
+        Print info to console.
+        """
         logger.info('number of planes: {}'.format(self.num_planes))
         logger.info('number of cells: {}'.format(self.num_cells))
 
