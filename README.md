@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/docs/docs/source/_static/images/logo.svg" width="480"/>
+<img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/docs/docs/source/_static/images/logo.png" width="480"/>
 
 -----------
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PyPI version](https://badge.fury.io/py/abspy.svg)](https://pypi.python.org/pypi/abspy/) [![Build status](https://readthedocs.org/projects/abspy/badge/)](https://abspy.readthedocs.io/en/latest/)
@@ -44,7 +44,7 @@ conda install mamba
 mamba install sage
 ```
 
-For Windows users, consider building SageMath from source or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html).
+For Windows users, you may have to build SageMath from source or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html).
 
 ### Install abspy
 
