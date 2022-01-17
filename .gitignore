@@ -131,6 +131,6 @@ dmypy.json
 .idea/
 
 # data and output
-data/
-output/
+tests/test_data/
+tests/test_output/
 
