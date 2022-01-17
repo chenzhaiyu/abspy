@@ -18,7 +18,9 @@ logger = attach_to_log()
 
 
 class VertexGroup:
-
+    """
+    Class for manipulating planar primitives.
+    """
     def __init__(self, filepath, process=True):
         """
         :param filepath: filepath to .vg file. str.
