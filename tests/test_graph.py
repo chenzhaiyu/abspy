@@ -3,7 +3,8 @@ from pathlib import Path
 from abspy import AdjacencyGraph
 import networkx as nx
 
-dir_tests= Path(__file__).parent
+dir_tests = Path(__file__).parent
+
 
 def example_graph():
     adjacency_graph = AdjacencyGraph()

@@ -1,9 +1,13 @@
 """
+complex.py
+----------
+
 Cell complex from planar primitive arrangement.
 
-Prerequisites:
-* Planar primitives are extracted.
-
+A linear cell complex is constructed from planar primitives
+with adaptive binary space partitioning: upon insertion of a primitive
+only the local cells that are intersecting it will be updated,
+so will be the corresponding adjacency graph of the complex.
 """
 
 from pathlib import Path
@@ -25,15 +29,28 @@ logger = attach_to_log()
 
 
 class CellComplex:
-
+    """
+    Class of cell complex from planar primitive arrangement.
+    """
     def __init__(self, planes, bounds, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
                  build_graph=False):
         """
-        :param planes: plana parameters. N * 4 array.
-        :param bounds: corresponding bounding box bounds of the planar primitives. N * 2 * 3 array.
-        :param initial_bound: optional. initial bound to partition. 2 * 3 array or None.
-        :param build_graph: optional. build the cell adjacency graph if set True.
-        :param additional_planes: optional. missing planes due to occlusion or incapacity of RANSAC.
+        Init CellComplex.
+        Class of cell complex from planar primitive arrangement.
+
+        Parameters
+        ----------
+        planes: (n, 4) float
+            Plana parameters
+        bounds: (n, 2, 3) float
+            Corresponding bounding box bounds of the planar primitives
+        initial_bound: None or (2, 3) float
+            Initial bound to partition
+        build_graph: bool
+            Build the cell adjacency graph if set True.
+        additional_planes: None or (n, 4) float
+            Additional planes to append to the complex,
+            can be missing planes due to occlusion or incapacity of RANSAC
         """
         self.bounds = bounds  # numpy.array over RDF
         self.planes = planes  # numpy.array over RDF
@@ -59,17 +76,34 @@ class CellComplex:
 
     def _construct_initial_cell(self):
         """
-        :return: Polyhedron object of the initial cell. a cuboid with 12 triangular facets.
+        Construct initial bounding cell.
+
+        Return
+        ----------
+        as_object: Polyhedron object
+            Polyhedron object of the initial cell,
+            a cuboid with 12 triangular facets.
         """
         return polytopes.cube(
             intervals=[[QQ(self.initial_bound[0][i]), QQ(self.initial_bound[1][i])] for i in range(3)])
 
     def refine_planes(self, theta=10 * 3.1416 / 180, epsilon=0.005, normalise_normal=False):
         """
-        Refine planar primitives. First, compute the angle of the supporting planes for each pair of planar primitives.
+        Refine planar primitives.
+
+        First, compute the angle of the supporting planes for each pair of planar primitives.
         Then, starting from the pair with the smallest angle, test if the following two conditions are met:
-        First, the angle between is lower than a threshold. Second, more than a specified number of points lie on
+        (a) the angle between is lower than a threshold. (b) more than a specified number of points lie on
         both primitives. Merge the two primitives and fit a new plane if the conditions are satisfied.
+
+        Parameters
+        ----------
+        theta: float
+            Angle tolerance, primitive pair has to be less than this tolerance to be refined
+        epsilon: float
+            Distance tolerance, primitive pair has to be less than this tolerance to be refined
+        normalise_normal: bool
+            Normalise normal if set True
         """
         if self.points is None:
             raise ValueError('point coordinates are needed for plane refinement')
@@ -150,11 +184,18 @@ class CellComplex:
 
     def prioritise_planes(self, prioritise_verticals=True):
         """
+        Prioritise certain planes to favour building reconstruction.
+
         First, vertical planar primitives are accorded higher priority than horizontal or oblique ones
         to avoid incomplete partitioning due to missing data about building facades.
         Second, in the same priority class, planar primitives with larger areas are assigned higher priority
         than smaller ones, to make the final cell complex as compact as possible.
         Note that this priority setting is designed exclusively for building models.
+
+        Parameters
+        ----------
+        prioritise_verticals: bool
+            Prioritise vertical planes if set True
         """
         logger.info('prioritising planar primitives')
         # compute the priority
@@ -183,14 +224,36 @@ class CellComplex:
 
     def _vertical_planes(self, slope_threshold=0.9, epsilon=10e-5):
         """
-        :return: the indices of the vertical planar primitives.
+        Return vertical planes.
+
+        Parameters
+        ----------
+        slope_threshold: float
+            Slope threshold, above which the planes are considered vertical
+        epsilon: float
+            Trivial term to avoid NaN
+
+        Returns
+        -------
+        as_int: (n,) int
+            Indices of the vertical planar primitives
         """
         slope_squared = (self.planes[:, 0] ** 2 + self.planes[:, 1] ** 2) / (self.planes[:, 2] ** 2 + epsilon)
         return np.where(slope_squared > slope_threshold ** 2)[0]
 
     def _sort_planes(self, mode='norm'):
         """
-        :return: the indices by which the planar primitives are sorted based on their bounding box volume.
+        Sort planes.
+
+        Parameters
+        ----------
+        mode: str
+            Mode for sorting, can be 'volume' or 'norm'
+
+        Returns
+        -------
+        as_int: (n,) int
+            Indices by which the planar primitives are sorted based on their bounding box volume
         """
         if mode == 'volume':
             volume = np.prod(self.bounds[:, 1, :] - self.bounds[:, 0, :], axis=1)
@@ -198,30 +261,53 @@ class CellComplex:
         elif mode == 'norm':
             sizes = np.linalg.norm(self.bounds[:, 1, :] - self.bounds[:, 0, :], ord=2, axis=1)
             return np.argsort(sizes)[::-1]
-        else:
-            # todo: sort area
+        elif mode == 'area':
             # project the points supporting each plane onto the plane
             # https://stackoverflow.com/questions/9605556/how-to-project-a-point-onto-a-plane-in-3d
             raise NotImplementedError
+        else:
+            raise ValueError('mode has to be "volume" or "norm"')
 
     @staticmethod
     def _pad_bound(bound, padding=0.00):
         """
-        :param bound: bound of the query planar primitive. 2 * 3 array.
-        :param padding: optional. padding factor. float. defaults to 0.05.
-        :return: padded bound.
+        Pad bound.
+
+        Parameters
+        ----------
+        bound: (2, 3) float
+            Bound of the query planar primitive
+        padding: float
+            Padding factor, defaults to 0.05.
+
+        Returns
+        -------
+        as_float: (2, 3) float
+            Padded bound
         """
         extent = bound[1] - bound[0]
         return [bound[0] - extent * padding, bound[1] + extent * padding]
 
     def _bbox_intersect(self, bound, plane, exhaustive=False, padding=None):
         """
-        :param bound: bound of the query planar primitive. 2 * 3 array.
-        :param plane: plane parameters.
-        :param padding: optional. padding for existing cells.
-        :param exhaustive: for benchmarking.
-        :return: indices of existing cells whose bounds intersect with bounds of the query primitive
-            and intersect with the supporting plane of the primitive.
+        Bounding box intersection test.
+
+        Parameters
+        ----------
+        bound: (2, 3) float
+            Bound of the query planar primitive
+        plane: (4,) float
+            Plane parameters
+        padding: None or float
+            Padding for existing cells
+        exhaustive: bool
+            Exhaustive partitioning, only for benchmarking.
+
+        Returns
+        -------
+        as_int: (n,) int
+            Indices of existing cells whose bounds intersect with bounds of the query primitive
+            and intersect with the supporting plane of the primitive
         """
 
         # todo: alpha-shape/convex hull to reduce unnecessary partitioning?
@@ -261,8 +347,19 @@ class CellComplex:
     @staticmethod
     def _inequalities(plane):
         """
-        :param plane parameters. 4,.
-        :return: inequalities defining two half-spaces separated by the plane
+        Inequalities from plane parameters.
+
+        Parameters
+        ----------
+        plane: (4,) float
+            Plane parameters
+
+        Returns
+        -------
+        positive: (4,) float
+            Inequality of the positive half-plane
+        negative: (4,) float
+            Inequality of the negative half-plane
         """
         positive = [QQ(plane[-1]), QQ(plane[0]), QQ(plane[1]), QQ(plane[2])]
         negative = [QQ(-element) for element in positive]
@@ -272,19 +369,36 @@ class CellComplex:
         """
         Convert index in the node list to that in the cell list.
         The rationale behind is #nodes == #cells (when a primitive is settled down).
-        :param query: query index in the node list.
+
+        Parameters
+        ----------
+        query: int
+            Query index in the node list
+
+        Returns
+        -------
+        as_int: int
+            Query index in the cell list
         """
         return list(self.graph.nodes).index(query)
 
     def construct(self, exhaustive=False):
         """
-        Two-stage primitive-in-cell predicate. First, bounding boxes of primitive and existing cells are evaluated
-        for possible intersection. Next, a strict intersection test is performed.
+        Construct cell complex.
 
-        Start partitioning. Generated cells are stored in self.cells.
+        Two-stage primitive-in-cell predicate.
+        (1) bounding boxes of primitive and existing cells are evaluated
+        for possible intersection. (2), a strict intersection test is performed.
+
+        Generated cells are stored in self.cells.
         * query the bounding box intersection.
         * optional: intersection test for polygon and edge in each potential cell.
         * partition the potential cell into two. rewind if partition fails.
+
+        Parameters
+        ----------
+        exhaustive: bool
+            Do exhaustive partitioning if set True
         """
         logger.info('constructing cell complex')
         tik = time.time()
@@ -378,6 +492,15 @@ class CellComplex:
     def visualise(self, indices_cells=None, temp_dir='./'):
         """
         Visualise the cells using trimesh.
+
+        Trimesh/pyglet installation are needed for the visualisation.
+
+        Parameters
+        ----------
+        indices_cells: None or (n,) int
+            Indices of cells to be visualised
+        temp_dir: str
+            Temp dir to save intermediate visualisation
         """
         if self.constructed:
             import os
@@ -400,20 +523,32 @@ class CellComplex:
     @property
     def num_cells(self):
         """
-        number of cells in the complex.
+        Number of cells in the complex.
         """
         return len(self.cells)
 
     @property
     def num_planes(self):
         """
-        number of cells in the complex, excluding the initial bounding box.
+        Number of planes in the complex, excluding the initial bounding box.
         """
         return len(self.planes)
 
-    def volumes(self, multiplier=1, engine='Qhull'):
+    def volumes(self, multiplier=1.0, engine='Qhull'):
         """
-        list of volumes.
+        list of cell volumes.
+
+        Parameters
+        ----------
+        multiplier: float
+            Multiplier to the volume
+        engine: str
+            Engine to compute volumes, can be 'Qhull' or 'native' with native SageMath
+
+        Returns
+        -------
+        as_float: list of float
+            Volumes of cells
         """
         if engine == 'Qhull':
             from scipy.spatial import ConvexHull
@@ -426,13 +561,26 @@ class CellComplex:
                     volumes[i] = RR(cell.volume()) * multiplier
             return volumes
 
-        else:
+        elif engine == 'native':
             return [RR(cell.volume()) * multiplier for cell in self.cells]
+
+        else:
+            raise ValueError('engine must be either "Qhull" or "native"')
 
     def cell_representatives(self, location='center'):
         """
-        Return representatives of the cells in the complex. 
-        :param location: 'center' represents the average of the vertices of the polyhedron, 'centroid' represents the center of mass/volume.
+        Return representatives of cells in the complex.
+
+        Parameters
+        ----------
+        location: str
+            'center' represents the average of the vertices of the polyhedron,
+            'centroid' represents the center of mass/volume.
+
+        Returns
+        -------
+        as_float: (n, 3) float
+            Representatives of cells in the complex.
         """
         if location == 'center':
             return [cell.center() for cell in self.cells]
@@ -451,7 +599,11 @@ class CellComplex:
     def save_npy(self, filepath):
         """
         Save the cells to an npy file (deprecated).
-        :param filepath: filepath.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to save npy file
         """
         if self.constructed:
             # create the dir if not exists
@@ -465,6 +617,20 @@ class CellComplex:
     def _obj_str(cells, use_mtl=False):
         """
         Convert a list of cells into a string of obj format.
+
+        Parameters
+        ----------
+        cells: list of Polyhedra objects
+            Polyhedra cells
+        use_mtl: bool
+            Use mtl attribute in obj if set True
+
+        Returns
+        -------
+        scene_str: str
+            String representation of the object
+        material_str: str
+            String representation of the material
         """
         scene = None
         for cell in cells:
@@ -493,9 +659,15 @@ class CellComplex:
     def save_obj(self, filepath, indices_cells=None, use_mtl=False):
         """
         Save polygon soup of indexed convexes to an obj file.
-        :param filepath: filepath.
-        :param indices_cells: indices of cells to save.
-        :param use_mtl: write material info if set True.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to save obj file
+        indices_cells: (n,) int
+            Indices of cells to save to file
+        use_mtl: bool
+            Use mtl attribute in obj if set True
         """
         if self.constructed:
             # create the dir if not exists
@@ -516,8 +688,13 @@ class CellComplex:
     def save_plm(self, filepath, indices_cells=None):
         """
         Save polygon soup of indexed convexes to a plm file (polyhedron mesh in Mapple).
-        :param filepath: filepath.
-        :param indices_cells: indices of cells to save.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to save plm file
+        indices_cells: (n,) int
+            Indices of cells to save to file
         """
         if self.constructed:
             # create the dir if not exists

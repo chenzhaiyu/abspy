@@ -28,7 +28,7 @@ API Reference
 
     .. autofunction:: abspy.VertexGroupReference.process
 
-    .. autofunction:: abspy.VertexGroupReference.save_vg
+    .. autofunction:: abspy.VertexGroupReference.save_primitives_vg
 
 
 .. autoclass:: abspy.CellComplex

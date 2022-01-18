@@ -1,5 +1,20 @@
-from pathlib import Path
+"""
+graph.py
+----------
+
+Adjacency graph of the cell complex.
+
+Each cell in the complex is represented as a node in the graph.
+In addition, two nodes (S and T) are appended in the graph,
+representing foreground and background, respectively.
+There are two kinds of edges in the graph: n-links and st-links.
+An n-link exists in between of two adjacent cells.
+An st-link connects every cell to S and to T.
+"""
+
 import time
+from pathlib import Path
+
 import networkx as nx
 import numpy as np
 from sage.all import RR
@@ -11,7 +26,19 @@ logger = attach_to_log()
 
 
 class AdjacencyGraph:
+    """
+    Class Adjacency graph of the cell complex.
+    """
+
     def __init__(self, graph=None):
+        """
+        Init AdjacencyGraph.
+
+        Parameters
+        ----------
+        graph: None or networkx Graph
+            Graph object
+        """
         self.graph = graph
         self.uid = list(graph.nodes) if graph else None  # passed graph.nodes are sorted
         self.reachable = None  # for outer surface extraction
@@ -21,6 +48,11 @@ class AdjacencyGraph:
     def load_graph(self, filepath):
         """
         Load graph from an external file.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to networkx graph
         """
         filepath = Path(filepath)
         if filepath.suffix == '.adjlist':
@@ -33,7 +65,24 @@ class AdjacencyGraph:
     def assign_weights_to_n_links(self, cells, attribute='area_overlap', normalise=True, factor=1.0, engine='Qhull',
                                   cache_interfaces=False):
         """
-        Assign weights to edges between every cell. weights is a dict with respect to each pair of nodes.
+        Assign weights to edges between every cell.
+
+        Parameters
+        ----------
+        cells: list of Polyhedra objects
+            Polyhedra cells
+        attribute: str
+            Attribute to use for encoding n-links, options are 'radius_overlap',
+            'area_overlap', 'vertices_overlap', 'area_misalign' and 'volume_difference'
+        normalise: bool
+            Normalise the attribute if set True
+        factor: float
+            Factor to multiply to the attribute
+        engine: str
+            Engine to compute convex hull
+            'Qhull' is supported at the moment
+        cache_interfaces: bool
+            Cache interfaces if set True
         """
 
         radius = [None] * len(self.graph.edges)
@@ -77,7 +126,6 @@ class AdjacencyGraph:
                 max_area = max(area)
                 # balloon term
                 # small (sum of) overlapping area -> large capacity -> small cost -> cut here
-                # todo: adaptive threshold
                 self.graph[m][n].update(
                     {'capacity': ((max_area - area[i]) / max_area if normalise else max_area - area[i]) * factor})
 
@@ -150,8 +198,12 @@ class AdjacencyGraph:
 
     def assign_weights_to_st_links(self, weights):
         """
-        Assign weights to edges between each cell and the s-t nodes. weights is a dict in respect to each node.
-        the weights can be the occupancy probability or the signed distance of the cells.
+        Assign weights to edges between each cell and the s-t nodes.
+
+        Parameters
+        ----------
+        weights: dict
+            Weights in respect to each node, can be the occupancy probability or the signed distance of the cells.
         """
         for i in self.uid:
             self.graph.add_edge(i, 's', capacity=weights[i])
@@ -160,6 +212,13 @@ class AdjacencyGraph:
     def cut(self):
         """
         Perform cutting operation.
+
+        Returns
+        ----------
+        cut_value: float
+            Cost of the cut
+        reachable: list of int
+            Reachable nodes from the S node
         """
         tik = time.time()
         cut_value, partition = nx.algorithms.flow.minimum_cut(self.graph, 's', 't')
@@ -176,6 +235,19 @@ class AdjacencyGraph:
 
     @staticmethod
     def _sorted_vertex_indices(adjacency_matrix):
+        """
+        Return sorted vertex indices.
+
+        Parameters
+        ----------
+        adjacency_matrix: matrix
+            Adjacency matrix
+
+        Returns
+        -------
+        sorted_: list of int
+            Sorted vertex indices
+        """
         pointer = 0
         sorted_ = [pointer]
         for _ in range(len(adjacency_matrix[0]) - 1):
@@ -191,7 +263,15 @@ class AdjacencyGraph:
     def save_surface_obj(self, filepath, cells=None, engine='rendering'):
         """
         Save the outer surface to an OBJ file, from interfaces between cells being cut.
-        Optional engine can be 'rendering', 'sorting' or 'projection'.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to save obj file
+        cells: None or list of Polyhedra objects
+            Polyhedra cells
+        engine: str
+            Engine to extract surface, can be 'rendering', 'sorting' or 'projection'
         """
         if not self.reachable:
             logger.error('no reachable cells. aborting')
@@ -255,7 +335,7 @@ class AdjacencyGraph:
                     surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
                 surface_str += 'f ' + ' '.join([str(f + num_vertices + 1) for f in polygon]) + '\n'
                 num_vertices += len(polygon)
-        
+
         if engine == 'rendering':
             surface_obj = surface.obj_repr(surface.default_render_params())
 
@@ -274,7 +354,7 @@ class AdjacencyGraph:
 
     def draw(self):
         """
-        Naively draw the graph with nodes represented by their UID.
+        Draw the graph with nodes represented by their UID.
         """
         import matplotlib.pyplot as plt
         plt.subplot(121)
@@ -284,31 +364,76 @@ class AdjacencyGraph:
     def _uid_to_index(self, query):
         """
         Convert index in the node list to that in the cell list.
+
         The rationale behind is #nodes == #cells (when a primitive is settled down).
-        :param query: query index in the node list.
+
+        Parameters
+        ----------
+        query: int
+            Query uid in the node list
+
+        Returns
+        -------
+        as_int: int
+            Query uid in the cell list
         """
         return self.uid.index(query)
 
     def _index_to_uid(self, query):
         """
         Convert index to node UID.
+
+        Parameters
+        ----------
+        query: int
+            Query index in the node list
+
+        Returns
+        -------
+        as_int: int
+            Node UID
         """
         return self.uid[query]
 
     def _sort_uid(self):
         """
-        Sort UID for graph structure loaded from an external file.
+        Sort UIDs for graph structure loaded from an external file.
+
+        Returns
+        -------
+        as_list: list of int
+            Sorted UIDs
         """
         return sorted([int(i) for i in self.graph.nodes])
 
     def to_indices(self, uids):
         """
         Convert UIDs to indices.
+
+        Parameters
+        ----------
+        uids: list of int
+            UIDs of nodes
+
+        Returns
+        -------
+        as_list: list of int
+            Indices of nodes
         """
         return [self._uid_to_index(i) for i in uids]
 
     def to_dict(self, weights_list):
         """
         Convert a weight list to weight dict keyed by self.uid.
+
+        Parameters
+        ----------
+        weights_list: list of
+            Weight list
+
+        Returns
+        -------
+        as_dict: dict
+            Weight dict
         """
         return {self.uid[i]: weight for i, weight in enumerate(weights_list)}
