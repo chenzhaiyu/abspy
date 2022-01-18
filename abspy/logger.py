@@ -19,6 +19,11 @@ def attach_to_log(level=logging.INFO,
         If True capture warnings
     filepath: None or str
         path to save the logfile
+
+    Returns
+    -------
+    logger: Logger object
+        Logger attached with a stream handler
     """
 
     # make sure we log warnings from the warnings module
