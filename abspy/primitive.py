@@ -9,10 +9,10 @@ Mapple as in [Easy3D](https://github.com/LiangliangNan/Easy3D)
 can be used to generate such primitives from point clouds.
 Otherwise, one can refer to the vertex group file format specification
 attached to the README document.
-
 """
 
 import numpy as np
+
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 

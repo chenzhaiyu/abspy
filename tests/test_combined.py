@@ -3,9 +3,10 @@ from pathlib import Path
 from abspy import VertexGroup, AdjacencyGraph, CellComplex
 import numpy as np
 import random
+
 random.seed(100)
 
-dir_tests= Path(__file__).parent
+dir_tests = Path(__file__).parent
 
 
 def sigmoid(x):

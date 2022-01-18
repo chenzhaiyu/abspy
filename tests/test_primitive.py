@@ -2,7 +2,8 @@ from pathlib import Path
 
 from abspy import VertexGroup, VertexGroupReference
 
-dir_tests= Path(__file__).parent
+dir_tests = Path(__file__).parent
+
 
 def example_extract_primitives():
     vertex_group = VertexGroup(filepath=dir_tests / 'test_data' / 'test_points.vg')
@@ -12,7 +13,7 @@ def example_extract_primitives():
 
 def example_extract_reference_primitives():
     vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_mesh.ply')
-    vertex_group_reference.save_vg(dir_tests / 'test_output' / 'reference.vg')
+    vertex_group_reference.save_primitives_vg(dir_tests / 'test_output' / 'reference.vg')
 
 
 if __name__ == '__main__':
