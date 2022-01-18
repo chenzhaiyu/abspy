@@ -46,3 +46,4 @@ num_children: num    # a segment/primitive/object may contain subsegment (that h
 
 To create such data from a point cloud, you can use `Mapple` in [Easy3D](https://github.com/LiangliangNan/Easy3D).
 
+Credit to [@LiangliangNan](https://github.com/LiangliangNan) for the vertex group data structure and the above specification.
