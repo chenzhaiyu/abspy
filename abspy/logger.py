@@ -12,13 +12,13 @@ def attach_to_log(level=logging.INFO,
     Parameters
     ------------
     level : enum (int)
-      Logging level, like logging.INFO
+        Logging level, like logging.INFO
     colors : bool
-      If True try to use colorlog formatter
+        If True try to use colorlog formatter
     capture_warnings: bool
-      If True capture warnings
+        If True capture warnings
     filepath: None or str
-    path to save the logfile
+        path to save the logfile
     """
 
     # make sure we log warnings from the warnings module
