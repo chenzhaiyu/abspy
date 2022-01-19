@@ -5,11 +5,16 @@
 
 ## Introduction
 
-**abspy** is a Python tool for 3D adaptive binary space partitioning and beyond: an ambient 3D space is recessively partitioned into non-overlapping convexes with pre-detected planar primitives, where the adjacency graph is dynamically obtained. It is implemented initially for surface reconstruction, but can be extrapolated to other applications nevertheless.
+**abspy** is a Python tool for 3D adaptive binary space partitioning and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with pre-detected planar primitives in a point cloud, where an adjacency graph is dynamically obtained. The tool is implemented to support compact surface reconstruction initially, but can be extrapolated to other applications as well.
 
-![partition](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/partition.png)
+## Key features
 
-An exact kernel of [SageMath](https://www.sagemath.org/) is used for robust Boolean spatial operations. This rational-based representation help avoid degenerate cases that may otherwise result in inconsistencies in the geometry.
+* Manipulation of planar primitives detected from point clouds
+* Linear cell complex creation with adaptive binary space partitioning (a-BSP)
+* Dynamic BSP-tree ([NetworkX](https://networkx.org/) graph) updated locally upon insertion of primitives
+* Support of polygonal surface reconstruction from graph cuts
+* Compatible data structure with [Easy3D](https://github.com/LiangliangNan/Easy3D) on point clouds, primitives, cell complexes and surfaces
+* Robust Boolean spatial operations underpinned by the rational ring from [SageMath](https://www.sagemath.org/)'s exact kernel
 
 ## Installation
 
@@ -29,7 +34,7 @@ pip install trimesh pyglet
 
 ### Install SageMath
 
-For Linux and macOS users, the easist is to install from [conda-forge](https://conda-forge.org/):
+For Linux and macOS users, the easiest is to install from [conda-forge](https://conda-forge.org/):
 
 ```bash
 conda config --add channels conda-forge
@@ -56,7 +61,7 @@ pip install abspy
 
 ## Quick start
 
-Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph and extracting the outer surface of the object. For the data structure of a `.vg` file, please refer to [VertexGroup](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/vertexgroup.md).
+Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph and extracting the outer surface of the object. For the data structure of a `.vg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
 ```python
 import numpy as np
@@ -95,8 +100,8 @@ cell_complex.visualise()
 # build adjacency graph of the cell complex
 graph = AdjacencyGraph(cell_complex.graph)
 
-# apply random weights (could instead be the predicted probability
-# for each convex being selected as composing the object in practice)
+# apply random weights
+# could instead be the predicted probability for each convex being inside the object
 weights_list = np.array([random.random() for _ in range(cell_complex.num_cells)])
 weights_list *= cell_complex.volumes(multiplier=10e5)
 weights_dict = graph.to_dict(weights_list)
@@ -116,13 +121,19 @@ graph.save_surface_obj('surface.obj', engine='rendering')
 
 * **Why adaptive?**
 
-Adaptive space partitioning can significantly reduce computations for cell complex creation, compared to an exhaustive partitioning strategy. The excessive number of cells not only hinders computation but also inclines to defective surfaces on subtle structures where inaccurate labels are more likely to be assigned.
+To avoid redundant partitioning, the adaptive strategy only allows intersecting spatially correlated primitives. This spatial correlation is described by intersection tests between the axis-aligned bounding box (AABB) of a primitive and the cells in the leaf nodes of the BSP tree.
+
+![partition](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/partition.png)
+
+Adaptive space partitioning can significantly reduce computations for cell complex creation, compared to an exhaustive partitioning strategy. The excessive number of cells from the latter not only hinders computation but also inclines to defective surfaces (if any) on subtle structures where inaccurate labels are more likely to be assigned.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/adaptive.png)
 
-* **What weights to assign to the adjacency graph?**
+* **How can abspy be used for surface reconstruction?**
 
-There are two kinds of weights to assign to an S-T graph: either to *n-links* or to *st-links*. For surface reconstruction using [graph-cut](https://en.wikipedia.org/wiki/Cut_(graph_theory)), assign the predicted probability of occupancy for each cell to the *st-links*, while assign overlap area to the *n-links*. Read this [paper](https://arxiv.org/pdf/2112.13142.pdf) for more information on this Markov random field formulation.
+With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by solving a binary labelling problem that classifies each cell as being *inside* or *outside* the object. The surface, therefore, exists in between adjacent cells where one is *inside* and the other is *outside* --- exactly where the graph cut is performed. [Points2Poly](https://github.com/chenzhaiyu/points2poly) wraps **abspy** for building surface reconstruction. For more information on this Markov random field formulation, read this [paper](https://arxiv.org/2112.13142).
+
+![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
 
 ## License
 
@@ -132,7 +143,7 @@ There are two kinds of weights to assign to an S-T graph: either to *n-links* or
 
 If you use abspy in a scientific work, please cite:
 
-```latex
+```bibtex
 @article{chen2021reconstructing,
   title={Reconstructing Compact Building Models from Point Clouds Using Deep Implicit Fields},
   author={Chen, Zhaiyu and Khademi, Seyran and Ledoux, Hugo and Nan, Liangliang},
