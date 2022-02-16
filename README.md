@@ -23,6 +23,7 @@
 All dependencies except for [SageMath](https://www.sagemath.org/) can be easily installed with [PyPI](https://pypi.org/):
 
 ```bash
+git clone https://github.com/chenzhaiyu/abspy && cd abspy
 pip install -r requirements.txt
 ```
 
