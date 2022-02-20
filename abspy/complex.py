@@ -451,18 +451,22 @@ class CellComplex:
 
                         # adjacency test between both created cells and their neighbours
                         # todo:
-                        #   avoid 3d-3d intersection if possible. those unsliced neighbours connect with only one child
+                        #   Avoid 3d-3d intersection if possible. Those unsliced neighbours connect with only one child
                         #   - reduce computation by half - can be further reduced using vertices/faces instead of
-                        #   polyhedron intersection. those sliced neighbors connect with both children
+                        #   polyhedron intersection. Those sliced neighbors connect with both children
 
                         for n, cell in enumerate(cells_neighbours):
 
                             interface_positive = cell_positive.intersection(cell)
-                            interface_negative = cell_negative.intersection(cell)
 
-                            if interface_positive.dim() == 2:  # strictly a face
+                            if interface_positive.dim() == 2:
+                                # this neighbour can connect with either or both children
                                 self.graph.add_edge(self.index_node + 1, list(neighbours)[n])
-                            if interface_negative.dim() == 2:
+                                interface_negative = cell_negative.intersection(cell)
+                                if interface_negative.dim() == 2:
+                                    self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
+                            else:
+                                # this neighbour must otherwise connect with the other child
                                 self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
 
                     # update cell id
@@ -509,7 +513,7 @@ class CellComplex:
                 import trimesh
                 import pyglet
             except ImportError:
-                logger.warning('trimesh/pyglet installation not found. skip visualisation')
+                logger.warning('trimesh/pyglet installation not found; skip visualisation')
                 return
             temp_filename = ''.join(choices(string.ascii_uppercase + string.digits, k=5)) + '.obj'
             self.save_obj(filepath=temp_dir + temp_filename, indices_cells=indices_cells, use_mtl=True)
