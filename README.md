@@ -128,6 +128,12 @@ Adaptive space partitioning can significantly reduce computations for cell compl
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/adaptive.png)
 
+Run the benchmark on the number of candidate cells and runtime among adaptive partitioning, exhaustive partitioning, and SageMath's [hyperplane arrangements](https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/hyperplane_arrangement/arrangement.html) (provided by SageMath natively) with `misc/benchmark.py`:
+
+```bash
+python misc/benchmark.py
+```
+
 * **How can abspy be used for surface reconstruction?**
 
 With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by solving a binary labelling problem that classifies each cell as being *inside* or *outside* the object. The surface, therefore, exists in between adjacent cells where one is *inside* and the other is *outside* --- exactly where the graph cut is performed. [Points2Poly](https://github.com/chenzhaiyu/points2poly) wraps **abspy** for building surface reconstruction. For more information on this Markov random field formulation, you may refer to this [paper](https://arxiv.org/2112.13142).
