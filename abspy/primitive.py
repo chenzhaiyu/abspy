@@ -102,7 +102,7 @@ class VertexGroup:
             params.append(param)
             bounds.append(self._points_bound(points))
             groups.append(points)
-        return params, bounds, groups
+        return np.array(params), np.array(bounds), np.array(groups, dtype=object)
 
     @staticmethod
     def _points_bound(points):

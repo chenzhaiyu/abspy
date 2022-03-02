@@ -15,33 +15,55 @@ def sigmoid(x):
 
 
 def example_combined():
+    """
+    Full workflow from VertexGroup to reconstructed surface.
+    """
+    # load a point cloud in VertexGroup
     vertex_group = VertexGroup(filepath=dir_tests / 'test_data' / 'test_points.vg')
-    vertex_group.normalise_to_centroid_and_scale()
-    planes, bounds, points = np.array(vertex_group.planes), np.array(vertex_group.bounds), np.array(
-        vertex_group.points_grouped, dtype=object)
 
-    additional_planes = [[0, 0, 1, -bounds[:, 0, 2].min()]]  # the bottom of the points (z = d)
-    cell_complex = CellComplex(planes, bounds, points, build_graph=True, additional_planes=additional_planes)
-    cell_complex.refine_planes()
-    cell_complex.prioritise_planes()
+    # normalise the point cloud
+    vertex_group.normalise_to_centroid_and_scale()
+
+    # additional planes to append (e.g., the bounding planes)
+    additional_planes = [[0, 0, 1, -vertex_group.bounds[:, 0, 2].min()]]  # the bottom of the points (z = d)
+
+    # initialise CellComplex from planar primitives
+    cell_complex = CellComplex(vertex_group.planes, vertex_group.bounds, vertex_group.points_grouped,
+                               build_graph=True, additional_planes=additional_planes)
+
+    # refine planar primitives
+    cell_complex.refine_planes(theta=0.1745, epsilon=0.005)
+
+    # prioritise certain planes (e.g., vertical ones)
+    cell_complex.prioritise_planes(prioritise_verticals=True)
+
+    # construct CellComplex
     cell_complex.construct()
+
+    # print info on the cell complex
     cell_complex.print_info()
+
+    # visualise the cell complex (only if trimesh installation is found)
     cell_complex.visualise()
 
-    graph = AdjacencyGraph(cell_complex.graph)
+    # build adjacency graph of the cell complex
+    adjacency_graph = AdjacencyGraph(cell_complex.graph)
 
-    # provided by the neural network prediction
-    weights_list = np.array([random.random() for _ in range(cell_complex.num_cells)])
-    weights_list *= cell_complex.volumes(multiplier=10e5)
-    # weights_list = sigmoid(weights_list)  # uncomment for building data
+    # apply weights (e.g., SDF values provided by neural network prediction)
+    sdf_values = np.load(dir_tests / 'test_data' / 'test_sdf.npy')
+    volumes = cell_complex.volumes(multiplier=10e5)
+    weights_dict = adjacency_graph.to_dict(sigmoid(sdf_values * volumes))
 
-    weights_dict = graph.to_dict(weights_list)
+    # assign weights to n-links and st-links to the graph
+    adjacency_graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap',
+                                              factor=0.001, cache_interfaces=True)  # provided by the cell complex
+    adjacency_graph.assign_weights_to_st_links(weights_dict)
 
-    graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap',
-                                    factor=0.1, cache_interfaces=True)  # provided by the cell complex
-    graph.assign_weights_to_st_links(weights_dict)
-    _, _ = graph.cut()
-    graph.save_surface_obj(filepath=dir_tests / 'test_output' / 'surface.obj', engine='rendering')
+    # perform graph-cut to extract surface
+    _, _ = adjacency_graph.cut()
+
+    # save surface model to an OBJ file
+    adjacency_graph.save_surface_obj(filepath=dir_tests / 'test_output' / 'surface.obj', engine='rendering')
 
 
 if __name__ == '__main__':

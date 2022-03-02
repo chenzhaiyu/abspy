@@ -5,7 +5,7 @@
 
 ## Introduction
 
-**abspy** is a Python tool for 3D adaptive binary space partitioning and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with pre-detected planar primitives in a point cloud, where an adjacency graph is dynamically obtained. The tool is implemented to support compact surface reconstruction initially, but can be extrapolated to other applications as well.
+***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with pre-detected planar primitives in a point cloud, where an adjacency graph is dynamically obtained. The tool is implemented to support compact surface reconstruction initially, but can be extrapolated to other applications as well.
 
 ## Key features
 
@@ -54,7 +54,7 @@ For Windows users, you may have to build SageMath from source or install all oth
 
 ### Install abspy
 
-**abspy** can be found and installed via [PyPI](https://pypi.org/project/abspy/):
+***abspy*** itself can be found and easily installed via [PyPI](https://pypi.org/project/abspy/):
 
 ```bash
 pip install abspy
@@ -62,7 +62,7 @@ pip install abspy
 
 ## Quick start
 
-Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph and extracting the outer surface of the object. For the data structure of a `.vg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
+Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph, and extracting the outer surface of the object.
 
 ```python
 import numpy as np
@@ -74,20 +74,17 @@ vertex_group = VertexGroup(filepath='points.vg')
 # normalise the point cloud
 vertex_group.normalise_to_centroid_and_scale()
 
-# retrieve planes, bounds and points from VertexGroup
-planes, bounds, points = np.array(vertex_group.planes), np.array(vertex_group.bounds), np.array(vertex_group.points_grouped, dtype=object)
-
 # additional planes to append (e.g., the bounding planes)
 additional_planes = [[0, 0, 1, -bounds[:, 0, 2].min()]]
 
-# initialise CellComplex from planar prititives
-cell_complex = CellComplex(planes, bounds, points, build_graph=True, additional_planes=additional_planes)
+# initialise CellComplex from planar primitives
+cell_complex = CellComplex(vertex_group.planes, vertex_group.bounds, vertex_group.points_grouped, build_graph=True, additional_planes=additional_planes)
 
 # refine planar primitives
 cell_complex.refine_planes()
 
-# prioritise certain planes
-cell_complex.prioritise_planes()
+# prioritise certain planes (e.g., vertical ones)
+cell_complex.prioritise_planes(prioritise_verticals=True)
 
 # construct CellComplex 
 cell_complex.construct()
@@ -99,24 +96,25 @@ cell_complex.print_info()
 cell_complex.visualise()
 
 # build adjacency graph of the cell complex
-graph = AdjacencyGraph(cell_complex.graph)
+adjacency_graph = AdjacencyGraph(cell_complex.graph)
 
-# apply random weights
-# could instead be the predicted probability for each convex being inside the object
-weights_list = np.array([random.random() for _ in range(cell_complex.num_cells)])
-weights_list *= cell_complex.volumes(multiplier=10e5)
-weights_dict = graph.to_dict(weights_list)
+# apply weights (e.g., SDF values provided by neural network prediction)
+sdf_values = np.load(dir_tests / 'test_data' / 'test_sdf.npy')
+volumes = cell_complex.volumes(multiplier=10e5)
+weights_dict = adjacency_graph.to_dict(sigmoid(sdf_values * volumes))
 
 # assign weights to n-links and st-links to the graph
-graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap', factor=0.1, cache_interfaces=True)
-graph.assign_weights_to_st_links(weights_dict)
+adjacency_graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap', factor=0.001, cache_interfaces=True)
+adjacency_graph.assign_weights_to_st_links(weights_dict)
 
-# perform graph-cut
-_, _ = graph.cut()
+# perform graph-cut to extract surface
+_, _ = adjacency_graph.cut()
 
-# save surface model to an obj file
-graph.save_surface_obj('surface.obj', engine='rendering')
+# save surface model to an OBJ file
+adjacency_graph.save_surface_obj('surface.obj', engine='rendering')
 ```
+
+Usage can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
 ## Misc
 
@@ -132,7 +130,7 @@ Adaptive space partitioning can significantly reduce computations for cell compl
 
 * **How can abspy be used for surface reconstruction?**
 
-With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by solving a binary labelling problem that classifies each cell as being *inside* or *outside* the object. The surface, therefore, exists in between adjacent cells where one is *inside* and the other is *outside* --- exactly where the graph cut is performed. [Points2Poly](https://github.com/chenzhaiyu/points2poly) wraps **abspy** for building surface reconstruction. For more information on this Markov random field formulation, read this [paper](https://arxiv.org/2112.13142).
+With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by solving a binary labelling problem that classifies each cell as being *inside* or *outside* the object. The surface, therefore, exists in between adjacent cells where one is *inside* and the other is *outside* --- exactly where the graph cut is performed. [Points2Poly](https://github.com/chenzhaiyu/points2poly) wraps **abspy** for building surface reconstruction. For more information on this Markov random field formulation, you may refer to this [paper](https://arxiv.org/2112.13142).
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
 
@@ -142,7 +140,7 @@ With the cell complex constructed and its adjacency maintained, surface reconstr
 
 ## Citation
 
-If you use abspy in a scientific work, please cite:
+If you use abspy in a scientific work, please consider citing it:
 
 ```bibtex
 @article{chen2021reconstructing,
