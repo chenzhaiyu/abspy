@@ -25,6 +25,7 @@ class VertexGroup:
     """
     Class for manipulating planar primitives.
     """
+
     def __init__(self, filepath, process=True):
         """
         Init VertexGroup.
@@ -32,8 +33,8 @@ class VertexGroup:
 
         Parameters
         ----------
-        filepath: str
-            Filepath to vertex group file (.vg)
+        filepath: pathlib.Path
+            Filepath to vertex group file (.vg) or binary vertex group file (.bvg)
         process: bool 
             Immediate processing if set True
         """
@@ -44,11 +45,74 @@ class VertexGroup:
         self.bounds = None
         self.points_grouped = None
 
-        with open(filepath, 'r') as fin:
-            self.vgroup = fin.readlines()
+        self.vgroup = self.load_file()
 
         if process:
             self.process()
+
+    def load_file(self):
+        if self.filepath.suffix == '.vg':
+            with open(self.filepath, 'r') as fin:
+                return fin.readlines()
+        elif self.filepath.suffix == '.bvg':
+            import struct
+
+            _SIZE_OF_INT = 4
+            _SIZE_OF_FLOAT = 4
+            _SIZE_OF_PARAM = 4
+            _SIZE_OF_COLOR = 3
+
+            vgroup = ''
+            with open(self.filepath, 'rb') as fin:
+                # points
+                num_points = struct.unpack('i', fin.read(_SIZE_OF_INT))[0]
+                points = struct.unpack('f' * num_points * 3, fin.read(_SIZE_OF_FLOAT * num_points * 3))
+                vgroup += f'num_points: {num_points}\n'
+                vgroup += ' '.join(map(str, points)) + '\n'
+
+                # colors
+                num_colors = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+                vgroup += f'num_colors: {num_colors}\n'
+
+                # normals
+                num_normals = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+                normals = struct.unpack('f' * num_normals * 3, fin.read(_SIZE_OF_FLOAT * num_normals * 3))
+                vgroup += f'num_normals: {num_normals}\n'
+                vgroup += ' '.join(map(str, normals)) + '\n'
+
+                # groups
+                num_groups = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+                vgroup += f'num_groups: {num_groups}\n'
+
+                group_counter = 0
+                while group_counter < num_groups:
+                    group_type = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+                    num_group_parameters = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+                    group_parameters = struct.unpack("f" * _SIZE_OF_PARAM, fin.read(_SIZE_OF_INT * _SIZE_OF_PARAM))
+                    group_label_size = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+                    # be reminded that vg <-> bvg in Mapple does not maintain group order
+                    group_label = struct.unpack("c" * group_label_size, fin.read(group_label_size))
+                    group_color = struct.unpack("f" * _SIZE_OF_COLOR, fin.read(_SIZE_OF_FLOAT * _SIZE_OF_COLOR))
+                    group_num_point = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+                    group_points = struct.unpack("i" * group_num_point, fin.read(_SIZE_OF_INT * group_num_point))
+                    num_children = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
+
+                    vgroup += f'group_type: {group_type}\n'
+                    vgroup += f'num_group_parameters: {num_group_parameters}\n'
+                    vgroup += 'group_parameters: ' + ' '.join(map(str, group_parameters)) + '\n'
+                    vgroup += 'group_label: ' + ''.join(map(str, group_label)) + '\n'
+                    vgroup += 'group_color: ' + ' '.join(map(str, group_color)) + '\n'
+                    vgroup += f'group_num_point: {group_num_point}\n'
+                    vgroup += ' '.join(map(str, group_points)) + '\n'
+                    vgroup += f'num_children: {num_children}\n'
+
+                    group_counter += 1
+
+                # convert vgroup to list
+                return vgroup.split('\n')
+
+        else:
+            raise ValueError(f'unable to load {self.filepath}, expected *.vg or .bvg.')
 
     def process(self):
         """
