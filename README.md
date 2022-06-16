@@ -114,7 +114,7 @@ _, _ = adjacency_graph.cut()
 adjacency_graph.save_surface_obj('surface.obj', engine='rendering')
 ```
 
-Usage can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
+Usage can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
 ## Misc
 
