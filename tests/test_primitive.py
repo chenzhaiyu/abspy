@@ -14,6 +14,7 @@ def example_extract_primitives_vg():
     # save planes and bounds as numpy (.npy) files
     vertex_group.save_planes_npy(dir_tests / 'test_output' / 'primitives_planes_vg.npy')
     vertex_group.save_bounds_npy(dir_tests / 'test_output' / 'primitives_bounds_vg.npy')
+    vertex_group.save_vg(dir_tests / 'test_output' / 'primitives.vg')
 
 
 def example_extract_primitives_bvg():
@@ -25,6 +26,7 @@ def example_extract_primitives_bvg():
     # save planes and bounds as numpy (.npy) files
     vertex_group.save_planes_npy(dir_tests / 'test_output' / 'primitives_planes_bvg.npy')
     vertex_group.save_bounds_npy(dir_tests / 'test_output' / 'primitives_bounds_bvg.npy')
+    vertex_group.save_bvg(dir_tests / 'test_output' / 'primitives.bvg')
 
 
 def example_extract_reference_primitives():
@@ -34,7 +36,7 @@ def example_extract_reference_primitives():
     vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_mesh.ply')
 
     # save extracted primitives as a VertexGroup (.vg) file
-    vertex_group_reference.save_primitives_vg(dir_tests / 'test_output' / 'reference.vg')
+    vertex_group_reference.save_vg(dir_tests / 'test_output' / 'reference.vg')
 
 
 if __name__ == '__main__':

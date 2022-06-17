@@ -11,6 +11,7 @@ Otherwise, one can refer to the vertex group file format specification
 attached to the README document.
 """
 
+from random import random
 import numpy as np
 
 from sklearn.decomposition import PCA
@@ -44,45 +45,52 @@ class VertexGroup:
         self.planes = None
         self.bounds = None
         self.points_grouped = None
+        self.points_ungrouped = None
 
-        self.vgroup = self.load_file()
+        self.vgroup_ascii = self.load_file()
+        self.vgroup_binary = None
 
         if process:
             self.process()
 
     def load_file(self):
+        """
+        Load (ascii / binary) vertex group file.
+        """
         if self.filepath.suffix == '.vg':
             with open(self.filepath, 'r') as fin:
                 return fin.readlines()
+
         elif self.filepath.suffix == '.bvg':
             import struct
 
+            # define size constants
             _SIZE_OF_INT = 4
             _SIZE_OF_FLOAT = 4
             _SIZE_OF_PARAM = 4
             _SIZE_OF_COLOR = 3
 
-            vgroup = ''
+            vgroup_ascii = ''
             with open(self.filepath, 'rb') as fin:
                 # points
                 num_points = struct.unpack('i', fin.read(_SIZE_OF_INT))[0]
                 points = struct.unpack('f' * num_points * 3, fin.read(_SIZE_OF_FLOAT * num_points * 3))
-                vgroup += f'num_points: {num_points}\n'
-                vgroup += ' '.join(map(str, points)) + '\n'
+                vgroup_ascii += f'num_points: {num_points}\n'
+                vgroup_ascii += ' '.join(map(str, points)) + '\n'
 
                 # colors
                 num_colors = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
-                vgroup += f'num_colors: {num_colors}\n'
+                vgroup_ascii += f'num_colors: {num_colors}\n'
 
                 # normals
                 num_normals = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
                 normals = struct.unpack('f' * num_normals * 3, fin.read(_SIZE_OF_FLOAT * num_normals * 3))
-                vgroup += f'num_normals: {num_normals}\n'
-                vgroup += ' '.join(map(str, normals)) + '\n'
+                vgroup_ascii += f'num_normals: {num_normals}\n'
+                vgroup_ascii += ' '.join(map(str, normals)) + '\n'
 
                 # groups
                 num_groups = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
-                vgroup += f'num_groups: {num_groups}\n'
+                vgroup_ascii += f'num_groups: {num_groups}\n'
 
                 group_counter = 0
                 while group_counter < num_groups:
@@ -97,19 +105,19 @@ class VertexGroup:
                     group_points = struct.unpack("i" * group_num_point, fin.read(_SIZE_OF_INT * group_num_point))
                     num_children = struct.unpack("i", fin.read(_SIZE_OF_INT))[0]
 
-                    vgroup += f'group_type: {group_type}\n'
-                    vgroup += f'num_group_parameters: {num_group_parameters}\n'
-                    vgroup += 'group_parameters: ' + ' '.join(map(str, group_parameters)) + '\n'
-                    vgroup += 'group_label: ' + ''.join(map(str, group_label)) + '\n'
-                    vgroup += 'group_color: ' + ' '.join(map(str, group_color)) + '\n'
-                    vgroup += f'group_num_point: {group_num_point}\n'
-                    vgroup += ' '.join(map(str, group_points)) + '\n'
-                    vgroup += f'num_children: {num_children}\n'
+                    vgroup_ascii += f'group_type: {group_type}\n'
+                    vgroup_ascii += f'num_group_parameters: {num_group_parameters}\n'
+                    vgroup_ascii += 'group_parameters: ' + ' '.join(map(str, group_parameters)) + '\n'
+                    vgroup_ascii += 'group_label: ' + ''.join(map(str, group_label)) + '\n'
+                    vgroup_ascii += 'group_color: ' + ' '.join(map(str, group_color)) + '\n'
+                    vgroup_ascii += f'group_num_point: {group_num_point}\n'
+                    vgroup_ascii += ' '.join(map(str, group_points)) + '\n'
+                    vgroup_ascii += f'num_children: {num_children}\n'
 
                     group_counter += 1
 
-                # convert vgroup to list
-                return vgroup.split('\n')
+                # convert vgroup_ascii to list
+                return vgroup_ascii.split('\n')
 
         else:
             raise ValueError(f'unable to load {self.filepath}, expected *.vg or .bvg.')
@@ -120,7 +128,7 @@ class VertexGroup:
         """
         logger.info('processing {}'.format(self.filepath))
         self.points = self.get_points()
-        self.planes, self.bounds, self.points_grouped = self.get_primitives()
+        self.planes, self.bounds, self.points_grouped, self.points_ungrouped = self.get_primitives()
         self.processed = True
 
     def get_points(self, row=1):
@@ -137,7 +145,7 @@ class VertexGroup:
         as_float: (n, 3) float
             Point cloud
         """
-        pc = np.fromstring(self.vgroup[row], sep=' ')
+        pc = np.fromstring(self.vgroup_ascii[row], sep=' ')
         return np.reshape(pc, (-1, 3))
 
     def get_primitives(self):
@@ -152,21 +160,28 @@ class VertexGroup:
             Bounding box of the primitives
         groups: (n, m, 3) float
             Groups of points
+        ungrouped_points: (u, 3) float
+            Points that belong to no group
         """
-        is_primitive = [line.startswith('group_num_point') for line in self.vgroup]
-        primitives = [self.vgroup[line] for line in np.where(is_primitive)[0] + 1]  # lines of groups in the file
+        is_primitive = [line.startswith('group_num_point') for line in self.vgroup_ascii]
+        primitives = [self.vgroup_ascii[line] for line in np.where(is_primitive)[0] + 1]  # lines of groups in the file
         params = []
         bounds = []
         groups = []
+        grouped_indices = set()  # indices of points being grouped
         for i, p in enumerate(primitives):
-            points = self.points[np.fromstring(p, sep=' ').astype(np.int64)]
+            point_indices = np.fromstring(p, sep=' ').astype(np.int64)
+            grouped_indices.update(point_indices)
+            points = self.points[point_indices]
             param = self.fit_plane(points, mode='PCA')
             if param is None:
                 continue
             params.append(param)
             bounds.append(self._points_bound(points))
             groups.append(points)
-        return np.array(params), np.array(bounds), np.array(groups, dtype=object)
+        ungrouped_indices = set(range(len(self.points))).difference(grouped_indices)
+        ungrouped_points = self.points[list(ungrouped_indices)]  # points that belong to no groups
+        return np.array(params), np.array(bounds), np.array(groups, dtype=object), np.array(ungrouped_points)
 
     @staticmethod
     def _points_bound(points):
@@ -299,27 +314,65 @@ class VertexGroup:
 
         return param
 
-    def save_planes_vg(self, filepath, row=1):
+    def save_vg(self, filepath):
         """
-        Save plane parameters into a vg file.
+        Save vertex group into a vg file.
 
         Parameters
         ----------
         filepath: str
             Filepath to save vg file
-        row: int
-            Row number where points are specified, defaults to 1 for filename.vg
         """
-        # https://github.com/numpy/numpy/issues/17704
-        # self.vgroup[row] = np.array2string(self.points.flatten(), threshold=100000000, separator=' ')
-        out = ''
         logger.info('writing vertex group into {}'.format(filepath))
-        for i in tqdm(self.points.flatten(), desc='writing vg'):
+
+        assert self.planes is not None and self.points_grouped is not None
+
+        points_grouped = np.concatenate(self.points_grouped)
+        points_ungrouped = self.points_ungrouped
+
+        # points
+        out = ''
+        out += 'num_points: {}\n'.format(len(points_grouped) + len(points_ungrouped))
+        for i in points_grouped.flatten():
             # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
             out += ' ' + str(i)
-        self.vgroup[row] = out
+        for i in points_ungrouped.flatten():
+            out += ' ' + str(i)
+
+        # normals
+        out += '\nnum_normals: {}\n'.format(len(points_grouped) + len(points_ungrouped))
+        for i, group in enumerate(self.points_grouped):
+            for _ in group:
+                out += '{} {} {} '.format(*self.planes[i][:3])
+        for i in range(len(points_ungrouped)):
+            out += '{} {} {} '.format(0, 0, 0)
+
+        # colors (no color needed)
+        out += '\nnum_colors: {}'.format(0)
+
+        # primitives
+        out += '\nnum_groups: {}\n'.format(len(self.points_grouped))
+        j_base = 0
+        for i, group in enumerate(self.points_grouped):
+            out += 'group_type: {}\n'.format(0)
+            out += 'num_group_parameters: {}\n'.format(4)
+            out += 'group_parameters: {} {} {} {}\n'.format(*self.planes[i])
+            out += 'group_label: group_{}\n'.format(i)
+            out += 'group_color: {} {} {}\n'.format(random(), random(), random())
+            out += 'group_num_point: {}\n'.format(len(self.points_grouped[i]))
+            for j in range(j_base, j_base + len(self.points_grouped[i])):
+                out += '{} '.format(j)
+            j_base += len(self.points_grouped[i])
+            out += '\nnum_children: {}\n'.format(0)
+
         with open(filepath, 'w') as fout:
-            fout.writelines(self.vgroup)
+            fout.writelines(out)
+
+    def save_bvg(self, filepath, row=1):
+        """
+        Save vertex group into a bvg file.
+        """
+        pass
 
     def save_planes_txt(self, filepath):
         """
@@ -445,7 +498,7 @@ class VertexGroupReference:
             self.points_grouped.append(points)
         self.points = np.concatenate(self.points_grouped)
 
-    def save_primitives_vg(self, filepath):
+    def save_vg(self, filepath):
         """
         Save primitives into a vg file.
 
@@ -454,8 +507,7 @@ class VertexGroupReference:
         filepath: str
             Filepath to save vg file
         """
-        from random import random
-        assert self.planes and self.points_grouped
+        assert self.planes is not None and self.points_grouped is not None
 
         # points
         out = ''
@@ -467,12 +519,11 @@ class VertexGroupReference:
         # normals
         out += '\nnum_normals: {}\n'.format(len(self.points))
         for i, group in enumerate(self.points_grouped):
-            # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
             for _ in group:
                 out += '{} {} {} '.format(*self.planes[i][:3])
 
         # colors (no color needed)
-        out += '\nnum_colors: {}\n'.format(0)
+        out += '\nnum_colors: {}'.format(0)
 
         # primitives
         out += '\nnum_groups: {}\n'.format(len(self.points_grouped))
@@ -491,3 +542,14 @@ class VertexGroupReference:
 
         with open(filepath, 'w') as fout:
             fout.writelines(out)
+
+    def save_bvg(self, filepath):
+        """
+        Save primitives into a bvg file.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to save bvg file
+        """
+        raise NotImplementedError

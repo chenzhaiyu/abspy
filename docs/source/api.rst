@@ -3,6 +3,8 @@ API Reference
 
 .. autoclass:: abspy.VertexGroup
 
+    .. autofunction:: abspy.VertexGroup.load_file
+
     .. autofunction:: abspy.VertexGroup.process
 
     .. autofunction:: abspy.VertexGroup.get_points
@@ -15,7 +17,9 @@ API Reference
 
     .. autofunction:: abspy.VertexGroup.fit_plane
 
-    .. autofunction:: abspy.VertexGroup.save_planes_vg
+    .. autofunction:: abspy.VertexGroup.save_vg
+
+    .. autofunction:: abspy.VertexGroup.save_bvg
 
     .. autofunction:: abspy.VertexGroup.save_planes_txt
 
@@ -28,7 +32,9 @@ API Reference
 
     .. autofunction:: abspy.VertexGroupReference.process
 
-    .. autofunction:: abspy.VertexGroupReference.save_primitives_vg
+    .. autofunction:: abspy.VertexGroupReference.save_vg
+
+    .. autofunction:: abspy.VertexGroupReference.save_bvg
 
 
 .. autoclass:: abspy.CellComplex
