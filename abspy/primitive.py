@@ -12,8 +12,10 @@ attached to the README document.
 """
 
 from random import random
-import numpy as np
+from pathlib import PosixPath
+import struct
 
+import numpy as np
 from sklearn.decomposition import PCA
 from tqdm import tqdm
 
@@ -62,8 +64,6 @@ class VertexGroup:
                 return fin.readlines()
 
         elif self.filepath.suffix == '.bvg':
-            import struct
-
             # define size constants
             _SIZE_OF_INT = 4
             _SIZE_OF_FLOAT = 4
@@ -325,6 +325,10 @@ class VertexGroup:
         """
         logger.info('writing vertex group into {}'.format(filepath))
 
+        if isinstance(filepath, str):
+            assert filepath.endswith('.vg')
+        elif isinstance(filepath, PosixPath):
+            assert filepath.suffix == '.vg'
         assert self.planes is not None and self.points_grouped is not None
 
         points_grouped = np.concatenate(self.points_grouped)
@@ -339,6 +343,9 @@ class VertexGroup:
         for i in points_ungrouped.flatten():
             out += ' ' + str(i)
 
+        # colors (no color needed)
+        out += '\nnum_colors: {}'.format(0)
+
         # normals
         out += '\nnum_normals: {}\n'.format(len(points_grouped) + len(points_ungrouped))
         for i, group in enumerate(self.points_grouped):
@@ -347,10 +354,7 @@ class VertexGroup:
         for i in range(len(points_ungrouped)):
             out += '{} {} {} '.format(0, 0, 0)
 
-        # colors (no color needed)
-        out += '\nnum_colors: {}'.format(0)
-
-        # primitives
+        # groups
         out += '\nnum_groups: {}\n'.format(len(self.points_grouped))
         j_base = 0
         for i, group in enumerate(self.points_grouped):
@@ -368,11 +372,65 @@ class VertexGroup:
         with open(filepath, 'w') as fout:
             fout.writelines(out)
 
-    def save_bvg(self, filepath, row=1):
+    def save_bvg(self, filepath):
         """
         Save vertex group into a bvg file.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to save vg file
         """
-        pass
+        logger.info('writing vertex group into {}'.format(filepath))
+
+        if isinstance(filepath, str):
+            assert filepath.endswith('.bvg')
+        elif isinstance(filepath, PosixPath):
+            assert filepath.suffix == '.bvg'
+        assert self.planes is not None and self.points_grouped is not None
+
+        points_grouped = np.concatenate(self.points_grouped)
+        points_ungrouped = self.points_ungrouped
+
+        # points
+        out = [struct.pack('i', len(points_grouped) + len(points_ungrouped))]
+        for i in points_grouped.flatten():
+            # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
+            out.append(struct.pack('f', i))
+        for i in points_ungrouped.flatten():
+            out.append(struct.pack('f', i))
+
+        # colors (no color needed)
+        out.append(struct.pack('i', 0))
+
+        # normals
+        out.append(struct.pack('i', len(points_grouped) + len(points_ungrouped)))
+        for i, group in enumerate(self.points_grouped):
+            for _ in group:
+                out.append(struct.pack('fff', *self.planes[i][:3]))
+        for i in range(len(points_ungrouped)):
+            out.append(struct.pack('fff', 0, 0, 0))
+
+        # groups
+        out.append(struct.pack('i', len(self.points_grouped)))
+        j_base = 0
+        for i, group in enumerate(self.points_grouped):
+            out.append(struct.pack('i', 0))
+            out.append(struct.pack('i', 4))
+            out.append(struct.pack('ffff', *self.planes[i]))
+            out.append(struct.pack('i', 6 + len(str(i))))
+            out.append(struct.pack(f'{(6 + len(str(i)))}s', bytes('group_{}'.format(i), encoding='ascii')))
+            out.append(struct.pack('fff', random(), random(), random()))
+            out.append(struct.pack('i', len(self.points_grouped[i])))
+
+            for j in range(j_base, j_base + len(self.points_grouped[i])):
+                out.append(struct.pack('i', j))
+
+            j_base += len(self.points_grouped[i])
+            out.append(struct.pack('i', 0))
+
+        with open(filepath, 'wb') as fout:
+            fout.writelines(out)
 
     def save_planes_txt(self, filepath):
         """
@@ -418,7 +476,7 @@ class VertexGroupReference:
     Class of reference vertex group sampled from meshes.
     """
 
-    def __init__(self, filepath, process=True):
+    def __init__(self, filepath, num_samples=10000, process=True):
         """
         Init VertexGroupReference.
         Class of reference vertex group sampled from meshes.
@@ -427,12 +485,15 @@ class VertexGroupReference:
         ----------
         filepath: str
             Filepath to a mesh
+        num_samples: int
+            Number of sampled points
         process: bool
             Immediate processing if set True
         """
         import trimesh
 
         self.filepath = filepath
+        self.num_samples = num_samples
         self.processed = False
         self.points = None
         self.planes = []
@@ -460,7 +521,7 @@ class VertexGroupReference:
         """
         return np.array([np.amin(points, axis=0), np.amax(points, axis=0)])
 
-    def process(self, num=10000):
+    def process(self):
         """
         Start processing mesh data.
 
@@ -472,7 +533,7 @@ class VertexGroupReference:
         from functools import reduce
 
         # sample on all faces
-        samples, face_indices = self.mesh.sample(count=num, return_index=True)  # face_indices match facets
+        samples, face_indices = self.mesh.sample(count=self.num_samples, return_index=True)  # face_indices match facets
 
         for facet in self.mesh.facets:  # a list of face indices for coplanar adjacent faces
 
@@ -507,6 +568,10 @@ class VertexGroupReference:
         filepath: str
             Filepath to save vg file
         """
+        if isinstance(filepath, str):
+            assert filepath.endswith('.vg')
+        elif isinstance(filepath, PosixPath):
+            assert filepath.suffix == '.vg'
         assert self.planes is not None and self.points_grouped is not None
 
         # points
@@ -516,16 +581,16 @@ class VertexGroupReference:
             # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
             out += ' ' + str(i)
 
+        # colors (no color needed)
+        out += '\nnum_colors: {}'.format(0)
+
         # normals
         out += '\nnum_normals: {}\n'.format(len(self.points))
         for i, group in enumerate(self.points_grouped):
             for _ in group:
                 out += '{} {} {} '.format(*self.planes[i][:3])
 
-        # colors (no color needed)
-        out += '\nnum_colors: {}'.format(0)
-
-        # primitives
+        # groups
         out += '\nnum_groups: {}\n'.format(len(self.points_grouped))
         j_base = 0
         for i, group in enumerate(self.points_grouped):
@@ -552,4 +617,45 @@ class VertexGroupReference:
         filepath: str
             Filepath to save bvg file
         """
-        raise NotImplementedError
+
+        if isinstance(filepath, str):
+            assert filepath.endswith('.bvg')
+        elif isinstance(filepath, PosixPath):
+            assert filepath.suffix == '.bvg'
+        assert self.planes is not None and self.points_grouped is not None
+
+        # points
+        out = [struct.pack('i', len(self.points))]
+        for i in self.points.flatten():
+            # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
+            out.append(struct.pack('f', i))
+
+        # colors (no color needed)
+        out.append(struct.pack('i', 0))
+
+        # normals
+        out.append(struct.pack('i', len(self.points)))
+        for i, group in enumerate(self.points_grouped):
+            for _ in group:
+                out.append(struct.pack('fff', *self.planes[i][:3]))
+
+        # groups
+        out.append(struct.pack('i', len(self.points_grouped)))
+        j_base = 0
+        for i, group in enumerate(self.points_grouped):
+            out.append(struct.pack('i', 0))
+            out.append(struct.pack('i', 4))
+            out.append(struct.pack('ffff', *self.planes[i]))
+            out.append(struct.pack('i', 6 + len(str(i))))
+            out.append(struct.pack(f'{(6 + len(str(i)))}s', bytes('group_{}'.format(i), encoding='ascii')))
+            out.append(struct.pack('fff', random(), random(), random()))
+            out.append(struct.pack('i', len(self.points_grouped[i])))
+
+            for j in range(j_base, j_base + len(self.points_grouped[i])):
+                out.append(struct.pack('i', j))
+
+            j_base += len(self.points_grouped[i])
+            out.append(struct.pack('i', 0))
+
+        with open(filepath, 'wb') as fout:
+            fout.writelines(out)
