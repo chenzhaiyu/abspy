@@ -11,6 +11,12 @@ def example_extract_primitives_vg():
     """
     vertex_group = VertexGroup(filepath=dir_tests / 'test_data' / 'test_points.vg')
 
+    # append additional planes
+    additional_planes = [[1, 2, 3, 4], [5, 6, 7, 8]]
+    additional_points = [[[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                         [[10, 11, 12], [13, 14, 15], [16, 17, 18]]]
+    vertex_group.append_planes(additional_planes=additional_planes, additional_points=additional_points)
+
     # save planes and bounds as numpy (.npy) files
     vertex_group.save_planes_npy(dir_tests / 'test_output' / 'primitives_planes_vg.npy')
     vertex_group.save_bounds_npy(dir_tests / 'test_output' / 'primitives_bounds_vg.npy')
@@ -24,6 +30,12 @@ def example_extract_primitives_bvg():
     Extract primitives from VertexGroup (.vg) file.
     """
     vertex_group = VertexGroup(filepath=dir_tests / 'test_data' / 'test_points.bvg')
+
+    # append additional planes
+    additional_planes = [[1, 2, 3, 4], [5, 6, 7, 8]]
+    additional_points = [[[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                         [[10, 11, 12], [13, 14, 15], [16, 17, 18]]]
+    vertex_group.append_planes(additional_planes=additional_planes, additional_points=additional_points)
 
     # save planes and bounds as numpy (.npy) files
     vertex_group.save_planes_npy(dir_tests / 'test_output' / 'primitives_planes_bvg.npy')

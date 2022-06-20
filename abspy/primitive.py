@@ -272,7 +272,7 @@ class VertexGroup:
     @staticmethod
     def fit_plane(points, mode='PCA'):
         """
-        Fitting plane parameters for a point set.
+        Fit plane parameters for a point set.
 
         Parameters
         ----------
@@ -313,6 +313,32 @@ class VertexGroup:
             param = np.append(normal, d)
 
         return param
+
+    def append_planes(self, additional_planes, additional_points=None):
+        """
+        Append planes to vertex group. The provided planes can be accompanied by optional supporting points.
+        Notice these additional planes differ from `additional_planes` in `complex.py`: the former apply to
+        the VertexGroup data structure thus is generic to applications, while the latter apply to only the
+        CellComplex data structure.
+
+        Parameters
+        ----------
+        additional_planes: (m, 4) float
+            Plane parameters
+        additional_points: None or (m, n, 3) float
+            Points that support planes
+        """
+        if additional_points is None:
+            # this may still find use cases where plane parameters are provided as-is
+            logger.warning('no supporting points provided. only appending plane parameters')
+        else:
+            assert len(additional_planes) == len(additional_points)
+            # direct appending would not work
+            combined = np.zeros(len(self.points_grouped) + len(additional_points), dtype=object)
+            combined[:len(self.points_grouped)] = self.points_grouped
+            combined[len(self.points_grouped):] = [np.array(g) for g in additional_points]
+            self.points_grouped = combined
+        self.planes = np.append(self.planes, additional_planes, axis=0)
 
     def save_vg(self, filepath):
         """
@@ -355,9 +381,10 @@ class VertexGroup:
             out += '{} {} {} '.format(0, 0, 0)
 
         # groups
-        out += '\nnum_groups: {}\n'.format(len(self.points_grouped))
+        num_groups = len(self.points_grouped)
+        out += '\nnum_groups: {}\n'.format(num_groups)
         j_base = 0
-        for i, group in enumerate(self.points_grouped):
+        for i in range(num_groups):
             out += 'group_type: {}\n'.format(0)
             out += 'num_group_parameters: {}\n'.format(4)
             out += 'group_parameters: {} {} {} {}\n'.format(*self.planes[i])
@@ -368,6 +395,17 @@ class VertexGroup:
                 out += '{} '.format(j)
             j_base += len(self.points_grouped[i])
             out += '\nnum_children: {}\n'.format(0)
+
+        # additional groups without supporting points
+        num_planes = len(self.planes)  # num_planes >= num_groups
+        for i in range(num_groups, num_planes):
+            out += 'group_type: {}\n'.format(0)
+            out += 'num_group_parameters: {}\n'.format(4)
+            out += 'group_parameters: {} {} {} {}\n'.format(*self.planes[i])
+            out += 'group_label: group_{}\n'.format(i)
+            out += 'group_color: {} {} {}\n'.format(random(), random(), random())
+            out += 'group_num_point: {}\n'.format(0)
+            out += 'num_children: {}\n'.format(0)
 
         with open(filepath, 'w') as fout:
             fout.writelines(out)
@@ -412,9 +450,10 @@ class VertexGroup:
             out.append(struct.pack('fff', 0, 0, 0))
 
         # groups
-        out.append(struct.pack('i', len(self.points_grouped)))
+        num_groups = len(self.points_grouped)
+        out.append(struct.pack('i', num_groups))
         j_base = 0
-        for i, group in enumerate(self.points_grouped):
+        for i in range(num_groups):
             out.append(struct.pack('i', 0))
             out.append(struct.pack('i', 4))
             out.append(struct.pack('ffff', *self.planes[i]))
@@ -427,6 +466,18 @@ class VertexGroup:
                 out.append(struct.pack('i', j))
 
             j_base += len(self.points_grouped[i])
+            out.append(struct.pack('i', 0))
+
+        # additional groups without supporting points
+        num_planes = len(self.planes)  # num_planes >= num_groups
+        for i in range(num_groups, num_planes):
+            out.append(struct.pack('i', 0))
+            out.append(struct.pack('i', 4))
+            out.append(struct.pack('ffff', *self.planes[i]))
+            out.append(struct.pack('i', 6 + len(str(i))))
+            out.append(struct.pack(f'{(6 + len(str(i)))}s', bytes('group_{}'.format(i), encoding='ascii')))
+            out.append(struct.pack('fff', random(), random(), random()))
+            out.append(struct.pack('i', 0))
             out.append(struct.pack('i', 0))
 
         with open(filepath, 'wb') as fout:
