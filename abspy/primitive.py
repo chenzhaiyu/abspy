@@ -225,7 +225,7 @@ class VertexGroup:
         self.points = (self.points - centroid) / scale
 
         # update planes and bounds as point coordinates has changed
-        self.planes, self.bounds, self.points_grouped = self.get_primitives()
+        self.planes, self.bounds, self.points_grouped, _ = self.get_primitives()
 
         # safely sample points after planes are extracted
         if num:
@@ -262,7 +262,7 @@ class VertexGroup:
         self.points = (self.points - offset) / (bounds.max() * scale) + centroid
 
         # update planes and bounds as point coordinates has changed
-        self.planes, self.bounds, self.points_grouped = self.get_primitives()
+        self.planes, self.bounds, self.points_grouped, _ = self.get_primitives()
 
         # safely sample points after planes are extracted
         if num:
