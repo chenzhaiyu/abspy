@@ -547,7 +547,7 @@ class CellComplex:
         multiplier: float
             Multiplier to the volume
         engine: str
-            Engine to compute volumes, can be 'Qhull' or 'native' with native SageMath
+            Engine to compute volumes, can be 'Qhull' or 'Sage' with native SageMath
 
         Returns
         -------
@@ -565,11 +565,11 @@ class CellComplex:
                     volumes[i] = RR(cell.volume()) * multiplier
             return volumes
 
-        elif engine == 'native':
+        elif engine == 'Sage':
             return [RR(cell.volume()) * multiplier for cell in self.cells]
 
         else:
-            raise ValueError('engine must be either "Qhull" or "native"')
+            raise ValueError('engine must be either "Qhull" or "Sage"')
 
     def cell_representatives(self, location='center'):
         """
@@ -593,26 +593,42 @@ class CellComplex:
         else:
             raise ValueError("expected 'mass' or 'centroid' as mode, got {}".format(location))
 
-    def cells_in_mesh(self, filepath_mesh):
+    def cells_in_mesh(self, filepath_mesh, engine='ray'):
         """
         Return indices of cells that are inside a reference mesh.
 
         Parameters
         ----------
         filepath_mesh: str
-            Filepath to reference mesh.
+            Filepath to reference mesh
+        engine: str
+            Engine to compute predicate, can be 'ray' for ray intersection, or 'distance' for signed distance
 
         Returns
         -------
         as_int: (n, ) int
-            Indices of cells being inside the reference mesh.
+            Indices of cells being inside the reference mesh
         """
         mesh = trimesh.load_mesh(filepath_mesh)
         centers = self.cell_representatives(location='center')
 
-        # https://trimsh.org/trimesh.proximity.html
-        distances = trimesh.proximity.signed_distance(mesh, centers)
-        return (distances >= 0).nonzero()[0]
+        if engine == 'ray':
+            # raytracing not stable for non-watertight mesh (incl. with inner structure)
+            try:
+                # https://trimsh.org/trimesh.ray.ray_pyembree.html
+                contains = trimesh.ray.ray_pyembree.RayMeshIntersector(mesh).contains_points(centers)
+            except ModuleNotFoundError:
+                # https://trimsh.org/trimesh.ray.ray_triangle.html
+                logger.warning('pyembree installation not found; fall back to ray_triangle')
+                contains = mesh.contains(centers)
+            return contains.nonzero()[0]
+
+        elif engine == 'distance':
+            # https://trimsh.org/trimesh.proximity.html
+            distances = trimesh.proximity.signed_distance(mesh, centers)
+            return (distances >= 0).nonzero()[0]
+        else:
+            raise ValueError("expected 'ray' or 'distance' as engine, got {}".format(engine))
 
     def print_info(self):
         """
