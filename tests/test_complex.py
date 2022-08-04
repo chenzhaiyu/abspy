@@ -31,8 +31,11 @@ def example_cell_complex():
     # print out info
     cell_complex.print_info()
 
-    # visualise the cell complex (only if trimesh installation is found)
-    cell_complex.visualise()
+    # cells inside reference mesh
+    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_mesh.ply')
+
+    # visualise the inside cells (only if pyglet installation is found)
+    cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
 
     # save cell complex to OBJ and PLM files
     cell_complex.save_obj(dir_tests / 'test_output' / 'cells.obj', use_mtl=True)

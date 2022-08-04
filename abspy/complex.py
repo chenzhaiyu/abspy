@@ -20,6 +20,7 @@ import time
 import numpy as np
 from tqdm import trange
 import networkx as nx
+import trimesh
 from sage.all import polytopes, QQ, RR, Polyhedron
 
 from .logger import attach_to_log
@@ -497,7 +498,7 @@ class CellComplex:
         """
         Visualise the cells using trimesh.
 
-        Trimesh/pyglet installation are needed for the visualisation.
+        pyglet installation is needed for the visualisation.
 
         Parameters
         ----------
@@ -510,10 +511,9 @@ class CellComplex:
             import os
             import string
             try:
-                import trimesh
                 import pyglet
             except ImportError:
-                logger.warning('trimesh/pyglet installation not found; skip visualisation')
+                logger.warning('pyglet installation not found; skip visualisation')
                 return
             temp_filename = ''.join(choices(string.ascii_uppercase + string.digits, k=5)) + '.obj'
             self.save_obj(filepath=temp_dir + temp_filename, indices_cells=indices_cells, use_mtl=True)
@@ -592,6 +592,27 @@ class CellComplex:
             return [cell.centroid() for cell in self.cells]
         else:
             raise ValueError("expected 'mass' or 'centroid' as mode, got {}".format(location))
+
+    def cells_in_mesh(self, filepath_mesh):
+        """
+        Return indices of cells that are inside a reference mesh.
+
+        Parameters
+        ----------
+        filepath_mesh: str
+            Filepath to reference mesh.
+
+        Returns
+        -------
+        as_int: (n, ) int
+            Indices of cells being inside the reference mesh.
+        """
+        mesh = trimesh.load_mesh(filepath_mesh)
+        centers = self.cell_representatives(location='center')
+
+        # https://trimsh.org/trimesh.proximity.html
+        distances = trimesh.proximity.signed_distance(mesh, centers)
+        return (distances >= 0).nonzero()[0]
 
     def print_info(self):
         """
