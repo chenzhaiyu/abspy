@@ -12,12 +12,11 @@ attached to the README document.
 """
 
 from random import random
-from pathlib import PosixPath
+from pathlib import Path
 import struct
 
 import numpy as np
 from sklearn.decomposition import PCA
-from tqdm import tqdm
 
 from .logger import attach_to_log
 
@@ -36,12 +35,15 @@ class VertexGroup:
 
         Parameters
         ----------
-        filepath: pathlib.Path
+        filepath: str or Path
             Filepath to vertex group file (.vg) or binary vertex group file (.bvg)
         process: bool 
             Immediate processing if set True
         """
-        self.filepath = filepath
+        if isinstance(filepath, str):
+            self.filepath = Path(filepath)
+        else:
+            self.filepath = filepath
         self.processed = False
         self.points = None
         self.planes = None
@@ -346,14 +348,14 @@ class VertexGroup:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save vg file
         """
         logger.info('writing vertex group into {}'.format(filepath))
 
         if isinstance(filepath, str):
             assert filepath.endswith('.vg')
-        elif isinstance(filepath, PosixPath):
+        elif isinstance(filepath, Path):
             assert filepath.suffix == '.vg'
         assert self.planes is not None and self.points_grouped is not None
 
@@ -416,14 +418,14 @@ class VertexGroup:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save vg file
         """
         logger.info('writing vertex group into {}'.format(filepath))
 
         if isinstance(filepath, str):
             assert filepath.endswith('.bvg')
-        elif isinstance(filepath, PosixPath):
+        elif isinstance(filepath, Path):
             assert filepath.suffix == '.bvg'
         assert self.planes is not None and self.points_grouped is not None
 
@@ -575,11 +577,6 @@ class VertexGroupReference:
     def process(self):
         """
         Start processing mesh data.
-
-        Parameters
-        ----------
-        num: int
-            Number of points to sample from mesh
         """
         from functools import reduce
 
@@ -616,12 +613,12 @@ class VertexGroupReference:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save vg file
         """
         if isinstance(filepath, str):
             assert filepath.endswith('.vg')
-        elif isinstance(filepath, PosixPath):
+        elif isinstance(filepath, Path):
             assert filepath.suffix == '.vg'
         assert self.planes is not None and self.points_grouped is not None
 
@@ -665,13 +662,13 @@ class VertexGroupReference:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save bvg file
         """
 
         if isinstance(filepath, str):
             assert filepath.endswith('.bvg')
-        elif isinstance(filepath, PosixPath):
+        elif isinstance(filepath, Path):
             assert filepath.suffix == '.bvg'
         assert self.planes is not None and self.points_grouped is not None
 
