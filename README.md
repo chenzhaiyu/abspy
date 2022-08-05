@@ -92,14 +92,18 @@ cell_complex.construct()
 # print info on the cell complex
 cell_complex.print_info()
 
-# visualise the cell complex (only if trimesh installation is found)
-cell_complex.visualise()
+# cells inside reference mesh
+cells_in_mesh = cell_complex.cells_in_mesh('tests/test_data/test_mesh_manifold.obj')
+
+# visualise the inside cells (only if pyglet installation is found and valid indices are provided)
+if len(cells_in_mesh):
+    cell_complex.visualise(indices_cells=cells_in_mesh)
 
 # build adjacency graph of the cell complex
 adjacency_graph = AdjacencyGraph(cell_complex.graph)
 
 # apply weights (e.g., SDF values provided by neural network prediction)
-sdf_values = np.load(dir_tests / 'test_data' / 'test_sdf.npy')
+sdf_values = np.load('tests/test_data/test_sdf.npy')
 volumes = cell_complex.volumes(multiplier=10e5)
 weights_dict = adjacency_graph.to_dict(sigmoid(sdf_values * volumes))
 
@@ -120,15 +124,11 @@ Usage can be found at [API reference](https://abspy.readthedocs.io/en/latest/api
 
 * **Why adaptive?**
 
-To avoid redundant partitioning, the adaptive strategy only allows intersecting spatially correlated primitives. This spatial correlation is described by intersection tests between the axis-aligned bounding box (AABB) of a primitive and the cells in the leaf nodes of the BSP tree.
-
-![partition](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/partition.png)
-
-Adaptive space partitioning can significantly reduce computations for cell complex creation, compared to an exhaustive partitioning strategy. The excessive number of cells from the latter not only hinders computation but also inclines to defective surfaces (if any) on subtle structures where inaccurate labels are more likely to be assigned.
+Adaptive space partitioning can significantly reduce computations for cell complex creation, compared to the exhaustive counterpart. The excessive number of cells from the latter not only hinders computation but also inclines to defective surfaces on subtle structures where inaccurate labels are more likely to be assigned.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/adaptive.png)
 
-Run the benchmark on the number of candidate cells and runtime among adaptive partitioning, exhaustive partitioning, and SageMath's [hyperplane arrangements](https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/hyperplane_arrangement/arrangement.html) (provided by SageMath natively) with `misc/benchmark.py`:
+Run the benchmark on the number of candidate cells and runtime among adaptive partitioning, exhaustive partitioning, and SageMath's [hyperplane arrangements](https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/hyperplane_arrangement/arrangement.html):
 
 ```bash
 python misc/benchmark.py
@@ -136,7 +136,7 @@ python misc/benchmark.py
 
 * **How can abspy be used for surface reconstruction?**
 
-With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by solving a binary labelling problem that classifies each cell as being *inside* or *outside* the object. The surface, therefore, exists in between adjacent cells where one is *inside* and the other is *outside* --- exactly where the graph cut is performed. [Points2Poly](https://github.com/chenzhaiyu/points2poly) wraps **abspy** for building surface reconstruction. For more information on this Markov random field formulation, you may refer to this [paper](https://arxiv.org/2112.13142).
+With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by a graph cut solver that classifies each cell as being *inside* or *outside* the object. The surface exists in between adjacent cells where one is *inside* and the other is *outside* &mdash; exactly where the cut is performed. For more information, refer to [Points2Poly](https://github.com/chenzhaiyu/points2poly) that wraps ***abspy*** for building surface reconstruction.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
 
@@ -146,7 +146,7 @@ With the cell complex constructed and its adjacency maintained, surface reconstr
 
 ## Citation
 
-If you use abspy in a scientific work, please consider citing it:
+If you use ***abspy*** in a scientific work, please consider citing the paper:
 
 ```bibtex
 @article{chen2021reconstructing,

@@ -44,10 +44,11 @@ def example_combined():
     cell_complex.print_info()
 
     # cells inside reference mesh
-    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_mesh.ply')
+    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_mesh_manifold.obj')
 
-    # visualise the inside cells (only if pyglet installation is found)
-    cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
+    # visualise the inside cells (only if pyglet installation is found and valid indices are provided)
+    if len(cells_in_mesh):
+        cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
 
     # build adjacency graph of the cell complex
     adjacency_graph = AdjacencyGraph(cell_complex.graph)

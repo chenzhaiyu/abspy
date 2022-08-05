@@ -515,6 +515,8 @@ class CellComplex:
             except ImportError:
                 logger.warning('pyglet installation not found; skip visualisation')
                 return
+            if len(indices_cells) == 0:
+                raise ValueError('no indices provided')
             temp_filename = ''.join(choices(string.ascii_uppercase + string.digits, k=5)) + '.obj'
             self.save_obj(filepath=temp_dir + temp_filename, indices_cells=indices_cells, use_mtl=True)
             scene = trimesh.load_mesh(temp_dir + temp_filename)
