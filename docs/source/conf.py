@@ -61,4 +61,4 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 # Mock imports
-autodoc_mock_imports = ['networkx', 'numpy', 'tqdm', 'sklearn', 'matplotlib', 'colorlog', 'scipy', 'sage']
+autodoc_mock_imports = ['networkx', 'numpy', 'tqdm', 'sklearn', 'matplotlib', 'colorlog', 'scipy', 'sage', 'trimesh']
