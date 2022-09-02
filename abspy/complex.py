@@ -515,7 +515,7 @@ class CellComplex:
             except ImportError:
                 logger.warning('pyglet installation not found; skip visualisation')
                 return
-            if len(indices_cells) == 0:
+            if indices_cells is not None and len(indices_cells) == 0:
                 raise ValueError('no indices provided')
             temp_filename = ''.join(choices(string.ascii_uppercase + string.digits, k=5)) + '.obj'
             self.save_obj(filepath=temp_dir + temp_filename, indices_cells=indices_cells, use_mtl=True)
@@ -593,7 +593,7 @@ class CellComplex:
         elif location == 'centroid':
             return [cell.centroid() for cell in self.cells]
         else:
-            raise ValueError("expected 'mass' or 'centroid' as mode, got {}".format(location))
+            raise ValueError("expected 'center' or 'centroid' as mode, got {}".format(location))
 
     def cells_in_mesh(self, filepath_mesh, engine='ray'):
         """
