@@ -681,6 +681,8 @@ class CellComplex:
 
         # directly save the obj string from scene.obj() will bring the inverted facets
         scene_obj = scene.obj_repr(scene.default_render_params())
+        if len(cells) == 1:
+            scene_obj = [scene_obj]
         scene_str = ''
         material_str = ''
 
