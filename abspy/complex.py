@@ -585,11 +585,11 @@ class CellComplex:
             'random' represents random point(s),
             'star' represents star-like point(s)
         num: int
-            number of samples, only applies to 'random' and 'star'
+            number of samples per cell, only applies to 'random' and 'star'
 
         Returns
         -------
-        as_float: (n, 3) float
+        as_float: (n, 3) float for 'center' and 'centroid', or (m, n, 3) for 'random' and 'star'
             Representatives of cells in the complex.
         """
         if location == 'center':
@@ -617,12 +617,14 @@ class CellComplex:
                     num_per_vertex = num // len(vertices)
                     num_remainder = num % len(vertices)
                     centroid = cell.centroid()
+                    points_cell = []
                     for vertex in vertices[:-1]:
-                        points.extend([vertex + (centroid - np.array(vertex)) / num_per_vertex * i
-                                       for i in range(num_per_vertex)])
+                        points_cell.extend([vertex + (centroid - np.array(vertex)) / num_per_vertex * i
+                                           for i in range(num_per_vertex)])
                     # last vertex consumes remainder points
-                    points.extend([vertices[-1] + (centroid - np.array(vertices[-1])) / (num_remainder + num_per_vertex)
-                                   * i for i in range(num_remainder + num_per_vertex)])
+                    points_cell.extend([vertices[-1] + (centroid - np.array(vertices[-1])) / (num_remainder + num_per_vertex)
+                                       * i for i in range(num_remainder + num_per_vertex)])
+                    points.append(points_cell)
             return points
 
         else:
