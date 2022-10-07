@@ -27,10 +27,10 @@ git clone https://github.com/chenzhaiyu/abspy && cd abspy
 pip install -r requirements.txt
 ```
 
-Optionally, install [trimesh](https://github.com/mikedh/trimesh) and [pyglet](https://github.com/pyglet/pyglet) for benchmarking and visualisation, respectively:
+Optionally, install [pyglet](https://github.com/pyglet/pyglet) and [pyembree](https://github.com/adam-grant-hendry/pyembree) for better visualisation and ray-tracing, respectively:
 
 ```bash
-pip install trimesh pyglet
+pip install pyglet pyembree
 ```
 
 ### Install SageMath

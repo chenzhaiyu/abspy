@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import numpy as np
+import trimesh
+
 from abspy import CellComplex
 
 dir_tests = Path(__file__).parent
@@ -32,7 +34,14 @@ def example_cell_complex():
     cell_complex.print_info()
 
     # cell representatives
-    representatives = cell_complex.cell_representatives(location='star', num=100)
+    num_representatives = 100
+    representatives = cell_complex.cell_representatives(location='random', num=num_representatives)
+    representatives = np.concatenate(representatives, axis=0)
+    colours = np.zeros([num_representatives * cell_complex.num_cells, 4])
+    for i in range(cell_complex.num_cells):
+        colours[num_representatives * i: num_representatives * (i + 1)] = trimesh.visual.color.random_color()
+    representatives_vis = trimesh.PointCloud(representatives, colours)
+    representatives_vis.show()
 
     # cells inside reference mesh
     cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_mesh_manifold.obj')
