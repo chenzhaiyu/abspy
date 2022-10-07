@@ -14,7 +14,7 @@ from pathlib import Path
 import itertools
 import heapq
 from copy import copy
-from random import random, choices
+from random import random, choices, uniform
 import time
 
 import numpy as np
@@ -573,7 +573,7 @@ class CellComplex:
         else:
             raise ValueError('engine must be either "Qhull" or "Sage"')
 
-    def cell_representatives(self, location='center'):
+    def cell_representatives(self, location='center', num=1):
         """
         Return representatives of cells in the complex.
 
@@ -581,7 +581,11 @@ class CellComplex:
         ----------
         location: str
             'center' represents the average of the vertices of the polyhedron,
-            'centroid' represents the center of mass/volume.
+            'centroid' represents the center of mass/volume,
+            'random' represents random point(s),
+            'star' represents star-like point(s)
+        num: int
+            number of samples, only applies to 'random' and 'star'
 
         Returns
         -------
@@ -592,8 +596,37 @@ class CellComplex:
             return [cell.center() for cell in self.cells]
         elif location == 'centroid':
             return [cell.centroid() for cell in self.cells]
+        elif location == 'random':
+            points = []
+            for cell in self.cells:
+                bbox = cell.bounding_box()
+                samples = [(uniform(bbox[0][0], bbox[1][0]), uniform(bbox[0][1], bbox[1][1]),
+                            uniform(bbox[0][2], bbox[1][2])) for _ in range(num)]
+                mask = [cell.contains(sample) for sample in samples]  # reject sampling
+                points.append(np.array(samples)[np.array(mask)])
+            return points
+
+        elif location == 'star':
+            points = []
+            for cell in self.cells:
+                vertices = cell.vertices_list()
+                if num <= len(vertices):
+                    # vertices given high priority
+                    points.append(choices(vertices, k=num))
+                else:
+                    num_per_vertex = num // len(vertices)
+                    num_remainder = num % len(vertices)
+                    centroid = cell.centroid()
+                    for vertex in vertices[:-1]:
+                        points.extend([vertex + (centroid - np.array(vertex)) / num_per_vertex * i
+                                       for i in range(num_per_vertex)])
+                    # last vertex consumes remainder points
+                    points.extend([vertices[-1] + (centroid - np.array(vertices[-1])) / (num_remainder + num_per_vertex)
+                                   * i for i in range(num_remainder + num_per_vertex)])
+            return points
+
         else:
-            raise ValueError("expected 'center' or 'centroid' as mode, got {}".format(location))
+            raise ValueError("expected 'center', 'centroid', 'random' or 'star' as mode, got {}".format(location))
 
     def cells_in_mesh(self, filepath_mesh, engine='ray'):
         """

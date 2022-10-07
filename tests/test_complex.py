@@ -31,6 +31,9 @@ def example_cell_complex():
     # print out info
     cell_complex.print_info()
 
+    # cell representatives
+    representatives = cell_complex.cell_representatives(location='star', num=100)
+
     # cells inside reference mesh
     cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_mesh_manifold.obj')
 
