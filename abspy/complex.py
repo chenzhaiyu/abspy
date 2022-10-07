@@ -600,10 +600,13 @@ class CellComplex:
             points = []
             for cell in self.cells:
                 bbox = cell.bounding_box()
-                samples = [(uniform(bbox[0][0], bbox[1][0]), uniform(bbox[0][1], bbox[1][1]),
-                            uniform(bbox[0][2], bbox[1][2])) for _ in range(num)]
-                mask = [cell.contains(sample) for sample in samples]  # reject sampling
-                points.append(np.array(samples)[np.array(mask)])
+                points_cell = []
+                while len(points_cell) < num:
+                    sample = (uniform(bbox[0][0], bbox[1][0]), uniform(bbox[0][1], bbox[1][1]),
+                              uniform(bbox[0][2], bbox[1][2]))
+                    if cell.contains(sample):
+                        points_cell.append(sample)
+                points.append(points_cell)
             return points
 
         elif location == 'star':
