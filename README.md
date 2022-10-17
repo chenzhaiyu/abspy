@@ -5,7 +5,7 @@
 
 ## Introduction
 
-***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with pre-detected planar primitives in a point cloud, where an adjacency graph is dynamically obtained. The tool is implemented to support compact surface reconstruction initially, but can be extrapolated to other applications as well.
+***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with pre-detected planar primitives in a point cloud, where an adjacency graph is dynamically obtained. Though the tool is designed primarily to support compact surface reconstruction, it can be extrapolated to other applications as well.
 
 ## Key features
 
@@ -45,7 +45,6 @@ conda install sage
 Alternatively, you can use [mamba](https://github.com/mamba-org/mamba) for faster parsing and package installation:
 
 ```bash
-conda config --add channels conda-forge
 conda install mamba
 mamba install sage
 ```
@@ -92,22 +91,11 @@ cell_complex.construct()
 # print info on the cell complex
 cell_complex.print_info()
 
-# cells inside reference mesh
-cells_in_mesh = cell_complex.cells_in_mesh('tests/test_data/test_mesh_manifold.obj')
-
-# visualise the inside cells (only if pyglet installation is found and valid indices are provided)
-if len(cells_in_mesh):
-    cell_complex.visualise(indices_cells=cells_in_mesh)
-
 # build adjacency graph of the cell complex
 adjacency_graph = AdjacencyGraph(cell_complex.graph)
 
-# apply weights (e.g., SDF values provided by neural network prediction)
-sdf_values = np.load('tests/test_data/test_sdf.npy')
-volumes = cell_complex.volumes(multiplier=10e5)
-weights_dict = adjacency_graph.to_dict(sigmoid(sdf_values * volumes))
-
-# assign weights to n-links and st-links to the graph
+# assign weights (e.g., SDF values provided by neural network prediction) to graph 
+weights_dict = adjacency_graph.to_dict(...)
 adjacency_graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap', factor=0.001, cache_interfaces=True)
 adjacency_graph.assign_weights_to_st_links(weights_dict)
 
@@ -149,10 +137,15 @@ With the cell complex constructed and its adjacency maintained, surface reconstr
 If you use ***abspy*** in a scientific work, please consider citing the paper:
 
 ```bibtex
-@article{chen2021reconstructing,
-  title={Reconstructing Compact Building Models from Point Clouds Using Deep Implicit Fields},
-  author={Chen, Zhaiyu and Khademi, Seyran and Ledoux, Hugo and Nan, Liangliang},
-  journal={arXiv preprint arXiv:2112.13142},
-  year={2021}
+@article{chen2022points2poly,
+  title = {Reconstructing compact building models from point clouds using deep implicit fields},
+  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume = {194},
+  pages = {58-73},
+  year = {2022},
+  issn = {0924-2716},
+  doi = {https://doi.org/10.1016/j.isprsjprs.2022.09.017},
+  url = {https://www.sciencedirect.com/science/article/pii/S0924271622002611},
+  author = {Zhaiyu Chen and Hugo Ledoux and Seyran Khademi and Liangliang Nan}
 }
 ```
