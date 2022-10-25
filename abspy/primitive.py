@@ -28,7 +28,7 @@ class VertexGroup:
     Class for manipulating planar primitives.
     """
 
-    def __init__(self, filepath, process=True):
+    def __init__(self, filepath, process=True, quiet=False):
         """
         Init VertexGroup.
         Class for manipulating planar primitives.
@@ -39,7 +39,12 @@ class VertexGroup:
             Filepath to vertex group file (.vg) or binary vertex group file (.bvg)
         process: bool 
             Immediate processing if set True
+        quiet: bool
+            Disable logging if set True
         """
+        if quiet:
+            logger.disabled = True
+
         if isinstance(filepath, str):
             self.filepath = Path(filepath)
         else:
@@ -529,7 +534,7 @@ class VertexGroupReference:
     Class of reference vertex group sampled from meshes.
     """
 
-    def __init__(self, filepath, num_samples=10000, process=True):
+    def __init__(self, filepath, num_samples=10000, process=True, quiet=False):
         """
         Init VertexGroupReference.
         Class of reference vertex group sampled from meshes.
@@ -542,7 +547,11 @@ class VertexGroupReference:
             Number of sampled points
         process: bool
             Immediate processing if set True
+        quiet: bool
+            Disable logging if set True
         """
+        if quiet:
+            logger.disabled = True
         import trimesh
 
         self.filepath = filepath
@@ -579,12 +588,12 @@ class VertexGroupReference:
         Start processing mesh data.
         """
         from functools import reduce
+        logger.info('processing {}'.format(self.filepath))
 
         # sample on all faces
         samples, face_indices = self.mesh.sample(count=self.num_samples, return_index=True)  # face_indices match facets
 
         for facet in self.mesh.facets:  # a list of face indices for coplanar adjacent faces
-
             # group corresponding samples by facet
             points = []
             for face_index in facet:

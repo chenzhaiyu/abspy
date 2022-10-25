@@ -30,7 +30,7 @@ class AdjacencyGraph:
     Class Adjacency graph of the cell complex.
     """
 
-    def __init__(self, graph=None):
+    def __init__(self, graph=None, quiet=False):
         """
         Init AdjacencyGraph.
 
@@ -38,7 +38,12 @@ class AdjacencyGraph:
         ----------
         graph: None or networkx Graph
             Graph object
+        quiet: bool
+            Disable logging if set True
         """
+        if quiet:
+            logger.disabled = True
+
         self.graph = graph
         self.uid = list(graph.nodes) if graph else None  # passed graph.nodes are sorted
         self.reachable = None  # for outer surface extraction

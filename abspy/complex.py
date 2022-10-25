@@ -34,7 +34,7 @@ class CellComplex:
     Class of cell complex from planar primitive arrangement.
     """
     def __init__(self, planes, bounds, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
-                 build_graph=False):
+                 build_graph=False, quiet=False):
         """
         Init CellComplex.
         Class of cell complex from planar primitive arrangement.
@@ -45,6 +45,8 @@ class CellComplex:
             Plana parameters
         bounds: (n, 2, 3) float
             Corresponding bounding box bounds of the planar primitives
+        points: (n, ) object of float
+            Points grouped into primitives, points[any]: (m, 3)
         initial_bound: None or (2, 3) float
             Initial bound to partition
         build_graph: bool
@@ -52,7 +54,12 @@ class CellComplex:
         additional_planes: None or (n, 4) float
             Additional planes to append to the complex,
             can be missing planes due to occlusion or incapacity of RANSAC
+        quiet: bool
+            Disable logging and progress bar if set True
         """
+        self.quiet = quiet
+        if self.quiet:
+            logger.disabled = True
         self.bounds = bounds  # numpy.array over RDF
         self.planes = planes  # numpy.array over RDF
         self.points = points
@@ -404,7 +411,8 @@ class CellComplex:
         logger.info('constructing cell complex')
         tik = time.time()
 
-        for i in trange(len(self.bounds)):  # kinetic for each primitive
+        pbar = range(len(self.bounds)) if self.quiet else trange(len(self.bounds))
+        for i in pbar:  # kinetic for each primitive
             # bounding box intersection test
             # indices of existing cells with potential intersections
             indices_cells = self._bbox_intersect(self.bounds[i], self.planes[i], exhaustive)
