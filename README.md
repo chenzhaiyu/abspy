@@ -53,10 +53,16 @@ For Windows users, you may have to build SageMath from source or install all oth
 
 ### Install abspy
 
-***abspy*** itself can be found and easily installed via [PyPI](https://pypi.org/project/abspy/):
+Preferably, ***abspy*** can be found and easily installed via [PyPI](https://pypi.org/project/abspy/):
 
 ```bash
 pip install abspy
+```
+
+Otherwise, you can install the pulled version locally:
+
+```
+pip install .
 ```
 
 ## Quick start
