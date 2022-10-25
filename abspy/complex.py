@@ -296,7 +296,7 @@ class CellComplex:
         extent = bound[1] - bound[0]
         return [bound[0] - extent * padding, bound[1] + extent * padding]
 
-    def _bbox_intersect(self, bound, plane, exhaustive=False, padding=None):
+    def _bbox_intersect(self, bound, plane, exhaustive=False, epsilon=10e-5):
         """
         Bounding box intersection test.
 
@@ -306,10 +306,10 @@ class CellComplex:
             Bound of the query planar primitive
         plane: (4,) float
             Plane parameters
-        padding: None or float
-            Padding for existing cells
         exhaustive: bool
-            Exhaustive partitioning, only for benchmarking.
+            Exhaustive partitioning, only for benchmarking
+        epsilon: float
+            Distance tolerance
 
         Returns
         -------
@@ -317,12 +317,9 @@ class CellComplex:
             Indices of existing cells whose bounds intersect with bounds of the query primitive
             and intersect with the supporting plane of the primitive
         """
-
         # todo: alpha-shape/convex hull to reduce unnecessary partitioning?
         # each planar primitive partitions only the 3D cells that intersect with it
         cells_bounds = np.array(self.cells_bounds)  # easier array manipulation
-        if padding:
-            bound = self._pad_bound(bound, padding=padding)
         center_targets = np.mean(cells_bounds, axis=1)  # N * 3
         extent_targets = cells_bounds[:, 1, :] - cells_bounds[:, 0, :]  # N * 3
 
@@ -336,7 +333,7 @@ class CellComplex:
             extent_query = bound[1] - bound[0]  # 3,
 
             # abs(center_distance) * 2 < (query extent + target extent) for every dimension -> intersection
-            intersection_bound = np.where(np.all(center_distance * 2 < extent_query + extent_targets, axis=1))[0]
+            intersection_bound = np.where(np.all(center_distance * 2 < extent_query + extent_targets + epsilon, axis=1))[0]
 
         # plane-AABB intersection test from extracted intersection_bound only
         # https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
@@ -345,7 +342,7 @@ class CellComplex:
         # compute distance of box center from plane
         distance = np.dot(center_targets[intersection_bound], plane[:3]) + plane[3]
         # intersection between plane and AABB occurs when distance falls within [-radius, +radius] interval
-        intersection_plane = np.where(np.abs(distance) <= radius)[0]
+        intersection_plane = np.where(np.abs(distance) <= radius + epsilon)[0]
 
         if exhaustive:
             return np.arange(len(self.cells_bounds))
