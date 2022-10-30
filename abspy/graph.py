@@ -56,7 +56,7 @@ class AdjacencyGraph:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to networkx graph
         """
         filepath = Path(filepath)
@@ -271,7 +271,7 @@ class AdjacencyGraph:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save obj file
         cells: None or list of Polyhedra objects
             Polyhedra cells

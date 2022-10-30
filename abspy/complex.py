@@ -645,7 +645,7 @@ class CellComplex:
 
         Parameters
         ----------
-        filepath_mesh: str
+        filepath_mesh: str or Path
             Filepath to reference mesh
         engine: str
             Engine to compute predicate, can be 'ray' for ray intersection, or 'distance' for signed distance
@@ -689,7 +689,7 @@ class CellComplex:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save CC file, '.cc' suffix recommended
         """
         if self.constructed:
@@ -705,7 +705,7 @@ class CellComplex:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save npy file
         """
         if self.constructed:
@@ -767,7 +767,7 @@ class CellComplex:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save obj file
         indices_cells: (n,) int
             Indices of cells to save to file
@@ -796,7 +796,7 @@ class CellComplex:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save plm file
         indices_cells: (n,) int
             Indices of cells to save to file

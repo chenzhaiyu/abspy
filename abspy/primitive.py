@@ -496,7 +496,7 @@ class VertexGroup:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save txt file
         """
         with open(filepath, 'w') as fout:
@@ -510,7 +510,7 @@ class VertexGroup:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save npy file
         """
         logger.info('writing plane parameters into {}'.format(filepath))
@@ -522,7 +522,7 @@ class VertexGroup:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to save npy file
         """
         logger.info('writing plane bounds into {}'.format(filepath))
@@ -541,7 +541,7 @@ class VertexGroupReference:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or Path
             Filepath to a mesh
         num_samples: int
             Number of sampled points
