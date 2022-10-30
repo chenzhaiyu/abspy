@@ -50,7 +50,10 @@ def example_cell_complex():
     if len(cells_in_mesh):
         cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
 
-    # save cell complex to OBJ and PLM files
+    # save cell complex CC file
+    cell_complex.save(dir_tests / 'test_output' / 'complex.cc')
+
+    #  Save cells to OBJ and PLM files
     cell_complex.save_obj(dir_tests / 'test_output' / 'cells.obj', use_mtl=True)
     cell_complex.save_plm(dir_tests / 'test_output' / 'cells.plm')
 

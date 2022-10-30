@@ -15,6 +15,7 @@ import itertools
 import heapq
 from copy import copy
 from random import random, choices, uniform
+import pickle
 import time
 
 import numpy as np
@@ -681,6 +682,22 @@ class CellComplex:
         """
         logger.info('number of planes: {}'.format(self.num_planes))
         logger.info('number of cells: {}'.format(self.num_cells))
+
+    def save(self, filepath):
+        """
+        Save the cell complex to a CC file.
+
+        Parameters
+        ----------
+        filepath: str
+            Filepath to save CC file, '.cc' suffix recommended
+        """
+        if self.constructed:
+            # create the dir if not exists
+            with open(filepath, 'wb') as f:
+                pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+        else:
+            raise RuntimeError('cell complex has not been constructed')
 
     def save_npy(self, filepath):
         """

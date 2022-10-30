@@ -57,6 +57,8 @@ API Reference
 
     .. autofunction:: abspy.CellComplex.print_info
 
+    .. autofunction:: abspy.CellComplex.save
+
     .. autofunction:: abspy.CellComplex.save_npy
 
     .. autofunction:: abspy.CellComplex.save_obj
