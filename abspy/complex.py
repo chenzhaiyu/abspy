@@ -61,6 +61,7 @@ class CellComplex:
         self.quiet = quiet
         if self.quiet:
             logger.disabled = True
+
         self.bounds = bounds  # numpy.array over RDF
         self.planes = planes  # numpy.array over RDF
         self.points = points
@@ -297,9 +298,9 @@ class CellComplex:
         extent = bound[1] - bound[0]
         return [bound[0] - extent * padding, bound[1] + extent * padding]
 
-    def _bbox_intersect(self, bound, plane, exhaustive=False, epsilon=10e-5):
+    def _intersect(self, bound, plane, exhaustive=False, epsilon=10e-5):
         """
-        Bounding box intersection test.
+        Pre-intersection test between query primitive and existing cells.
 
         Parameters
         ----------
@@ -318,7 +319,9 @@ class CellComplex:
             Indices of existing cells whose bounds intersect with bounds of the query primitive
             and intersect with the supporting plane of the primitive
         """
-        # todo: alpha-shape/convex hull to reduce unnecessary partitioning?
+        if exhaustive:
+            return np.arange(len(self.cells_bounds))
+
         # each planar primitive partitions only the 3D cells that intersect with it
         cells_bounds = np.array(self.cells_bounds)  # easier array manipulation
         center_targets = np.mean(cells_bounds, axis=1)  # N * 3
@@ -328,7 +331,7 @@ class CellComplex:
             intersection_bound = np.arange(len(self.cells_bounds))
 
         else:
-            # intersection with existing cell AABB
+            # intersection with existing cells' AABB
             center_query = np.mean(bound, axis=0)  # 3,
             center_distance = np.abs(center_query - center_targets)  # N * 3
             extent_query = bound[1] - bound[0]  # 3,
@@ -344,9 +347,6 @@ class CellComplex:
         distance = np.dot(center_targets[intersection_bound], plane[:3]) + plane[3]
         # intersection between plane and AABB occurs when distance falls within [-radius, +radius] interval
         intersection_plane = np.where(np.abs(distance) <= radius + epsilon)[0]
-
-        if exhaustive:
-            return np.arange(len(self.cells_bounds))
 
         return intersection_bound[intersection_plane]
 
@@ -388,7 +388,7 @@ class CellComplex:
         """
         return list(self.graph.nodes).index(query)
 
-    def construct(self, exhaustive=False):
+    def construct(self, exhaustive=False, num_workers=0):
         """
         Construct cell complex.
 
@@ -405,7 +405,11 @@ class CellComplex:
         ----------
         exhaustive: bool
             Do exhaustive partitioning if set True
+        num_workers: int
+            Number of workers for multi-processing, disabled if set 0
         """
+        if num_workers != 0:
+            raise NotImplementedError('set num_workers=0 to disable multi-processing')
         logger.info('constructing cell complex')
         tik = time.time()
 
@@ -413,7 +417,7 @@ class CellComplex:
         for i in pbar:  # kinetic for each primitive
             # bounding box intersection test
             # indices of existing cells with potential intersections
-            indices_cells = self._bbox_intersect(self.bounds[i], self.planes[i], exhaustive)
+            indices_cells = self._intersect(self.bounds[i], self.planes[i], exhaustive)
             assert len(indices_cells), 'intersection failed! check the initial bound'
 
             # half-spaces defined by inequalities
@@ -458,9 +462,8 @@ class CellComplex:
 
                         # adjacency test between both created cells and their neighbours
                         # todo:
-                        #   Avoid 3d-3d intersection if possible. Those unsliced neighbours connect with only one child
-                        #   - reduce computation by half - can be further reduced using vertices/faces instead of
-                        #   polyhedron intersection. Those sliced neighbors connect with both children
+                        #   Avoid 3d-3d intersection if possible. Unsliced neighbours connect with only one child;
+                        #   sliced neighbors connect with both children. Multi-processing across neighbours
 
                         for n, cell in enumerate(cells_neighbours):
 

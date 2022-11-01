@@ -8,7 +8,7 @@ from abspy import CellComplex
 dir_tests = Path(__file__).parent
 
 
-def example_cell_complex():
+def example_cell_complex_from_planes():
     """
     Simple CellComplex construction from specified planes and bounds.
     """
@@ -58,5 +58,21 @@ def example_cell_complex():
     cell_complex.save_plm(dir_tests / 'test_output' / 'cells.plm')
 
 
+def example_cell_complex_from_mesh():
+    """
+    CellComplex construction from reference mesh.
+    """
+    # todo: encapsulate all tests
+    # vertex group reference from mesh
+    from abspy import VertexGroupReference
+    vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_mesh.ply', num_samples=10000)
+
+    # construct cell complex
+    cell_complex = CellComplex(np.array(vertex_group_reference.planes), np.array(vertex_group_reference.bounds),
+                               build_graph=True, quiet=False)
+    cell_complex.construct()
+
+
 if __name__ == '__main__':
-    example_cell_complex()
+    example_cell_complex_from_planes()
+    example_cell_complex_from_mesh()
