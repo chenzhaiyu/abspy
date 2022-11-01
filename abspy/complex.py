@@ -10,6 +10,8 @@ only the local cells that are intersecting it will be updated,
 so will be the corresponding adjacency graph of the complex.
 """
 
+import os
+import string
 from pathlib import Path
 import itertools
 import heapq
@@ -17,6 +19,7 @@ from copy import copy
 from random import random, choices, uniform
 import pickle
 import time
+import multiprocessing
 
 import numpy as np
 from tqdm import trange
@@ -298,9 +301,10 @@ class CellComplex:
         extent = bound[1] - bound[0]
         return [bound[0] - extent * padding, bound[1] + extent * padding]
 
-    def _intersect(self, bound, plane, exhaustive=False, epsilon=10e-5):
+    def _intersect_bound_plane(self, bound, plane, exhaustive=False, epsilon=10e-5):
         """
-        Pre-intersection test between query primitive and existing cells.
+        Pre-intersection test between query primitive and existing cells,
+        based on AABB and plane parameters.
 
         Parameters
         ----------
@@ -388,6 +392,40 @@ class CellComplex:
         """
         return list(self.graph.nodes).index(query)
 
+    @staticmethod
+    def _intersect_neighbour(positive, negative, neighbour):
+        """
+        Intersection test between partitioned cells and neighbouring cell.
+        Implemented for multi-processing across all neighbours.
+
+        Parameters
+        ----------
+        positive: Polyhedron object
+            Positive cell
+        negative: Polyhedron object
+            Negative cell
+        neighbour: Polyhedron object
+            Neighbouring cell
+
+        Returns
+        -------
+        as_tuple: (bool, bool)
+            Intersection between (positive cell and neighbouring cell, negative cell and neighbouring cell)
+        """
+        interface_positive = positive.intersection(neighbour)
+
+        result_positive, result_negative = False, False
+        if interface_positive.dim() == 2:
+            # this neighbour can connect with either or both children
+            result_positive = True
+            interface_negative = negative.intersection(neighbour)
+            if interface_negative.dim() == 2:
+                result_negative = True
+        else:
+            # this neighbour must otherwise connect with the other child
+            result_negative = True
+        return result_positive, result_negative
+
     def construct(self, exhaustive=False, num_workers=0):
         """
         Construct cell complex.
@@ -417,7 +455,7 @@ class CellComplex:
         for i in pbar:  # kinetic for each primitive
             # bounding box intersection test
             # indices of existing cells with potential intersections
-            indices_cells = self._intersect(self.bounds[i], self.planes[i], exhaustive)
+            indices_cells = self._intersect_bound_plane(self.bounds[i], self.planes[i], exhaustive)
             assert len(indices_cells), 'intersection failed! check the initial bound'
 
             # half-spaces defined by inequalities
@@ -463,7 +501,7 @@ class CellComplex:
                         # adjacency test between both created cells and their neighbours
                         # todo:
                         #   Avoid 3d-3d intersection if possible. Unsliced neighbours connect with only one child;
-                        #   sliced neighbors connect with both children. Multi-processing across neighbours
+                        #   sliced neighbors connect with both children. Multi-processing across neighbours.
 
                         for n, cell in enumerate(cells_neighbours):
 
@@ -517,9 +555,6 @@ class CellComplex:
             Temp dir to save intermediate visualisation
         """
         if self.constructed:
-            import os
-            import string
-
             try:
                 import pyglet
             except ImportError:
@@ -527,6 +562,7 @@ class CellComplex:
                 return
             if indices_cells is not None and len(indices_cells) == 0:
                 raise ValueError('no indices provided')
+
             filename_stem = ''.join(choices(string.ascii_uppercase + string.digits, k=5))
             filename_mesh = filename_stem + '.obj'
             filename_mtl = filename_stem + '.mtl'
