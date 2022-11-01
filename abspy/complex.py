@@ -519,6 +519,7 @@ class CellComplex:
         if self.constructed:
             import os
             import string
+
             try:
                 import pyglet
             except ImportError:
@@ -526,12 +527,15 @@ class CellComplex:
                 return
             if indices_cells is not None and len(indices_cells) == 0:
                 raise ValueError('no indices provided')
-            temp_filename = ''.join(choices(string.ascii_uppercase + string.digits, k=5)) + '.obj'
-            self.save_obj(filepath=temp_dir + temp_filename, indices_cells=indices_cells, use_mtl=True)
-            scene = trimesh.load_mesh(temp_dir + temp_filename)
+            filename_stem = ''.join(choices(string.ascii_uppercase + string.digits, k=5))
+            filename_mesh = filename_stem + '.obj'
+            filename_mtl = filename_stem + '.mtl'
+
+            self.save_obj(filepath=temp_dir + filename_mesh, indices_cells=indices_cells, use_mtl=True)
+            scene = trimesh.load_mesh(temp_dir + filename_mesh)
             scene.show()
-            os.remove(temp_dir + temp_filename)
-            os.remove(temp_dir + 'colours.mtl')
+            os.remove(temp_dir + filename_mesh)
+            os.remove(temp_dir + filename_mtl)
         else:
             raise RuntimeError('cell complex has not been constructed')
 
@@ -720,7 +724,7 @@ class CellComplex:
             raise RuntimeError('cell complex has not been constructed')
 
     @staticmethod
-    def _obj_str(cells, use_mtl=False):
+    def _obj_str(cells, use_mtl=False, filename_mtl='colours.mtl'):
         """
         Convert a list of cells into a string of obj format.
 
@@ -730,6 +734,8 @@ class CellComplex:
             Polyhedra cells
         use_mtl: bool
             Use mtl attribute in obj if set True
+        filename_mtl: None or str
+            Material filename
 
         Returns
         -------
@@ -750,7 +756,7 @@ class CellComplex:
         material_str = ''
 
         if use_mtl:
-            scene_str += 'mtllib colours.mtl\n'
+            scene_str += f'mtllib {filename_mtl}\n'
 
         for o in range(len(cells)):
             scene_str += scene_obj[o][0] + '\n'
@@ -783,12 +789,12 @@ class CellComplex:
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
             cells = [self.cells[i] for i in indices_cells] if indices_cells is not None else self.cells
-            scene_str, material_str = self._obj_str(cells, use_mtl=use_mtl)
+            scene_str, material_str = self._obj_str(cells, use_mtl=use_mtl, filename_mtl=f'{filepath.stem}.mtl')
 
             with open(filepath, 'w') as f:
                 f.writelines(scene_str)
             if use_mtl:
-                with open(filepath.with_name('colours.mtl'), 'w') as f:
+                with open(filepath.with_name(f'{filepath.stem}.mtl'), 'w') as f:
                     f.writelines(material_str)
         else:
             raise RuntimeError('cell complex has not been constructed')

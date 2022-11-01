@@ -62,7 +62,6 @@ def example_cell_complex_from_mesh():
     """
     CellComplex construction from reference mesh.
     """
-    # todo: encapsulate all tests
     # vertex group reference from mesh
     from abspy import VertexGroupReference
     vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_mesh.ply', num_samples=10000)
@@ -71,6 +70,7 @@ def example_cell_complex_from_mesh():
     cell_complex = CellComplex(np.array(vertex_group_reference.planes), np.array(vertex_group_reference.bounds),
                                build_graph=True, quiet=False)
     cell_complex.construct()
+    cell_complex.visualise()
 
 
 if __name__ == '__main__':
