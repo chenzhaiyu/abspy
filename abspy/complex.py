@@ -392,39 +392,29 @@ class CellComplex:
         """
         return list(self.graph.nodes).index(query)
 
-    @staticmethod
-    def _intersect_neighbour(positive, negative, neighbour):
+    def _intersect_neighbour(self, kwargs):
         """
         Intersection test between partitioned cells and neighbouring cell.
         Implemented for multi-processing across all neighbours.
 
         Parameters
         ----------
-        positive: Polyhedron object
-            Positive cell
-        negative: Polyhedron object
-            Negative cell
-        neighbour: Polyhedron object
-            Neighbouring cell
-
-        Returns
-        -------
-        as_tuple: (bool, bool)
-            Intersection between (positive cell and neighbouring cell, negative cell and neighbouring cell)
+        kwargs: (int, Polyhedron object, Polyhedron object, Polyhedron object)
+            (neighbour index, positive cell, negative cell, neighbouring cell)
         """
-        interface_positive = positive.intersection(neighbour)
+        n, cell_positive, cell_negative, cell_neighbour = kwargs['n'], kwargs['positive'], kwargs['negative'], kwargs['neighbour']
 
-        result_positive, result_negative = False, False
+        interface_positive = cell_positive.intersection(cell_neighbour)
+
         if interface_positive.dim() == 2:
             # this neighbour can connect with either or both children
-            result_positive = True
-            interface_negative = negative.intersection(neighbour)
+            self.graph.add_edge(self.index_node + 1, n)
+            interface_negative = cell_negative.intersection(cell_neighbour)
             if interface_negative.dim() == 2:
-                result_negative = True
+                self.graph.add_edge(self.index_node + 2, n)
         else:
             # this neighbour must otherwise connect with the other child
-            result_negative = True
-        return result_positive, result_negative
+            self.graph.add_edge(self.index_node + 2, n)
 
     def construct(self, exhaustive=False, num_workers=0):
         """
@@ -446,10 +436,12 @@ class CellComplex:
         num_workers: int
             Number of workers for multi-processing, disabled if set 0
         """
-        if num_workers != 0:
-            raise NotImplementedError('set num_workers=0 to disable multi-processing')
         logger.info('constructing cell complex')
         tik = time.time()
+
+        pool = None
+        if num_workers > 0:
+            pool = multiprocessing.Pool(processes=num_workers)
 
         pbar = range(len(self.bounds)) if self.quiet else trange(len(self.bounds))
         for i in pbar:  # kinetic for each primitive
@@ -501,21 +493,17 @@ class CellComplex:
                         # adjacency test between both created cells and their neighbours
                         # todo:
                         #   Avoid 3d-3d intersection if possible. Unsliced neighbours connect with only one child;
-                        #   sliced neighbors connect with both children. Multi-processing across neighbours.
+                        #   sliced neighbors connect with both children.
 
-                        for n, cell in enumerate(cells_neighbours):
+                        kwargs = []
+                        for n, cell in zip(neighbours, cells_neighbours):
+                            kwargs.append({'n': n, 'positive': cell_positive, 'negative': cell_negative, 'neighbour': cell})
 
-                            interface_positive = cell_positive.intersection(cell)
-
-                            if interface_positive.dim() == 2:
-                                # this neighbour can connect with either or both children
-                                self.graph.add_edge(self.index_node + 1, list(neighbours)[n])
-                                interface_negative = cell_negative.intersection(cell)
-                                if interface_negative.dim() == 2:
-                                    self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
-                            else:
-                                # this neighbour must otherwise connect with the other child
-                                self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
+                        if pool is None:
+                            for k in kwargs:
+                                self._intersect_neighbour(k)
+                        else:
+                            pool.map(self._intersect_neighbour, kwargs)
 
                     # update cell id
                     self.index_node += 2
