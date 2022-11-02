@@ -55,6 +55,8 @@ API Reference
 
     .. autofunction:: abspy.CellComplex.cell_representatives
 
+    .. autofunction:: abspy.CellComplex.cell_in_mesh
+
     .. autofunction:: abspy.CellComplex.print_info
 
     .. autofunction:: abspy.CellComplex.save
