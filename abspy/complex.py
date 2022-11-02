@@ -10,6 +10,8 @@ only the local cells that are intersecting it will be updated,
 so will be the corresponding adjacency graph of the complex.
 """
 
+import os
+import string
 from pathlib import Path
 import itertools
 import heapq
@@ -17,6 +19,7 @@ from copy import copy
 from random import random, choices, uniform
 import pickle
 import time
+import multiprocessing
 
 import numpy as np
 from tqdm import trange
@@ -298,9 +301,10 @@ class CellComplex:
         extent = bound[1] - bound[0]
         return [bound[0] - extent * padding, bound[1] + extent * padding]
 
-    def _intersect(self, bound, plane, exhaustive=False, epsilon=10e-5):
+    def _intersect_bound_plane(self, bound, plane, exhaustive=False, epsilon=10e-5):
         """
-        Pre-intersection test between query primitive and existing cells.
+        Pre-intersection test between query primitive and existing cells,
+        based on AABB and plane parameters.
 
         Parameters
         ----------
@@ -388,6 +392,30 @@ class CellComplex:
         """
         return list(self.graph.nodes).index(query)
 
+    def _intersect_neighbour(self, kwargs):
+        """
+        Intersection test between partitioned cells and neighbouring cell.
+        Implemented for multi-processing across all neighbours.
+
+        Parameters
+        ----------
+        kwargs: (int, Polyhedron object, Polyhedron object, Polyhedron object)
+            (neighbour index, positive cell, negative cell, neighbouring cell)
+        """
+        n, cell_positive, cell_negative, cell_neighbour = kwargs['n'], kwargs['positive'], kwargs['negative'], kwargs['neighbour']
+
+        interface_positive = cell_positive.intersection(cell_neighbour)
+
+        if interface_positive.dim() == 2:
+            # this neighbour can connect with either or both children
+            self.graph.add_edge(self.index_node + 1, n)
+            interface_negative = cell_negative.intersection(cell_neighbour)
+            if interface_negative.dim() == 2:
+                self.graph.add_edge(self.index_node + 2, n)
+        else:
+            # this neighbour must otherwise connect with the other child
+            self.graph.add_edge(self.index_node + 2, n)
+
     def construct(self, exhaustive=False, num_workers=0):
         """
         Construct cell complex.
@@ -408,16 +436,18 @@ class CellComplex:
         num_workers: int
             Number of workers for multi-processing, disabled if set 0
         """
-        if num_workers != 0:
-            raise NotImplementedError('set num_workers=0 to disable multi-processing')
         logger.info('constructing cell complex')
         tik = time.time()
+
+        pool = None
+        if num_workers > 0:
+            pool = multiprocessing.Pool(processes=num_workers)
 
         pbar = range(len(self.bounds)) if self.quiet else trange(len(self.bounds))
         for i in pbar:  # kinetic for each primitive
             # bounding box intersection test
             # indices of existing cells with potential intersections
-            indices_cells = self._intersect(self.bounds[i], self.planes[i], exhaustive)
+            indices_cells = self._intersect_bound_plane(self.bounds[i], self.planes[i], exhaustive)
             assert len(indices_cells), 'intersection failed! check the initial bound'
 
             # half-spaces defined by inequalities
@@ -463,21 +493,17 @@ class CellComplex:
                         # adjacency test between both created cells and their neighbours
                         # todo:
                         #   Avoid 3d-3d intersection if possible. Unsliced neighbours connect with only one child;
-                        #   sliced neighbors connect with both children. Multi-processing across neighbours
+                        #   sliced neighbors connect with both children.
 
-                        for n, cell in enumerate(cells_neighbours):
+                        kwargs = []
+                        for n, cell in zip(neighbours, cells_neighbours):
+                            kwargs.append({'n': n, 'positive': cell_positive, 'negative': cell_negative, 'neighbour': cell})
 
-                            interface_positive = cell_positive.intersection(cell)
-
-                            if interface_positive.dim() == 2:
-                                # this neighbour can connect with either or both children
-                                self.graph.add_edge(self.index_node + 1, list(neighbours)[n])
-                                interface_negative = cell_negative.intersection(cell)
-                                if interface_negative.dim() == 2:
-                                    self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
-                            else:
-                                # this neighbour must otherwise connect with the other child
-                                self.graph.add_edge(self.index_node + 2, list(neighbours)[n])
+                        if pool is None:
+                            for k in kwargs:
+                                self._intersect_neighbour(k)
+                        else:
+                            pool.map(self._intersect_neighbour, kwargs)
 
                     # update cell id
                     self.index_node += 2
@@ -517,9 +543,6 @@ class CellComplex:
             Temp dir to save intermediate visualisation
         """
         if self.constructed:
-            import os
-            import string
-
             try:
                 import pyglet
             except ImportError:
@@ -527,6 +550,7 @@ class CellComplex:
                 return
             if indices_cells is not None and len(indices_cells) == 0:
                 raise ValueError('no indices provided')
+
             filename_stem = ''.join(choices(string.ascii_uppercase + string.digits, k=5))
             filename_mesh = filename_stem + '.obj'
             filename_mtl = filename_stem + '.mtl'
