@@ -2,6 +2,8 @@ API Reference
 ===============
 
 .. autoclass:: abspy.VertexGroup
+    
+    .. autofunction:: abspy.VertexGroup.__init__
 
     .. autofunction:: abspy.VertexGroup.load_file
 
@@ -29,6 +31,8 @@ API Reference
 
 
 .. autoclass:: abspy.VertexGroupReference
+    
+    .. autofunction:: abspy.VertexGroup.__init__
 
     .. autofunction:: abspy.VertexGroupReference.process
 
@@ -38,6 +42,8 @@ API Reference
 
 
 .. autoclass:: abspy.CellComplex
+    
+    .. autofunction:: abspy.VertexGroup.__init__
 
     .. autofunction:: abspy.CellComplex.refine_planes
 
@@ -55,7 +61,7 @@ API Reference
 
     .. autofunction:: abspy.CellComplex.cell_representatives
 
-    .. autofunction:: abspy.CellComplex.cell_in_mesh
+    .. autofunction:: abspy.CellComplex.cells_in_mesh
 
     .. autofunction:: abspy.CellComplex.print_info
 
@@ -69,6 +75,8 @@ API Reference
 
 
 .. autoclass:: abspy.AdjacencyGraph
+    
+    .. autofunction:: abspy.VertexGroup.__init__
 
     .. autofunction:: abspy.AdjacencyGraph.load_graph
 

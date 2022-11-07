@@ -1,4 +1,6 @@
-from .complex import CellComplex
-from .primitive import VertexGroup, VertexGroupReference
-from .graph import AdjacencyGraph
+__all__ = ['CellComplex', 'VertexGroup', 'VertexGroupReference', 'AdjacencyGraph']
+
+from .complex import *
+from .primitive import *
+from .graph import *
 from .logger import *
