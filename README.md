@@ -80,7 +80,7 @@ vertex_group = VertexGroup(filepath='points.vg')
 vertex_group.normalise_to_centroid_and_scale()
 
 # additional planes to append (e.g., the bounding planes)
-additional_planes = [[0, 0, 1, -bounds[:, 0, 2].min()]]
+additional_planes = [[0, 0, 1, -1], [1, 2, 3, -4]]
 
 # initialise CellComplex from planar primitives
 cell_complex = CellComplex(vertex_group.planes, vertex_group.bounds, vertex_group.points_grouped, build_graph=True, additional_planes=additional_planes)
@@ -130,7 +130,7 @@ python misc/benchmark.py
 
 * **How can abspy be used for surface reconstruction?**
 
-With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by a graph cut solver that classifies each cell as being *inside* or *outside* the object. The surface exists in between adjacent cells where one is *inside* and the other is *outside* &mdash; exactly where the cut is performed. For more information, refer to [Points2Poly](https://github.com/chenzhaiyu/points2poly) that wraps ***abspy*** for building surface reconstruction.
+With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by a graph cut solver that classifies each cell as being *inside* or *outside* the object. The surface exists in between adjacent cells where one is *inside* and the other is *outside* &mdash; exactly where the cut is performed. For more information, refer to [Points2Poly](https://github.com/chenzhaiyu/points2poly) which wraps ***abspy*** for building surface reconstruction.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
 
