@@ -23,3 +23,6 @@ push = false
 "docs/source/conf.py" = [
     "release = '{version}'"
 ]
+"abspy/version.py" = [
+    "__version__ = '{version}'"
+]
