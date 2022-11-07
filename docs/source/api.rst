@@ -32,7 +32,7 @@ API Reference
 
 .. autoclass:: abspy.VertexGroupReference
     
-    .. autofunction:: abspy.VertexGroup.__init__
+    .. autofunction:: abspy.VertexGroupReference.__init__
 
     .. autofunction:: abspy.VertexGroupReference.process
 
@@ -43,7 +43,7 @@ API Reference
 
 .. autoclass:: abspy.CellComplex
     
-    .. autofunction:: abspy.VertexGroup.__init__
+    .. autofunction:: abspy.CellComplex.__init__
 
     .. autofunction:: abspy.CellComplex.refine_planes
 
@@ -76,7 +76,7 @@ API Reference
 
 .. autoclass:: abspy.AdjacencyGraph
     
-    .. autofunction:: abspy.VertexGroup.__init__
+    .. autofunction:: abspy.AdjacencyGraph.__init__
 
     .. autofunction:: abspy.AdjacencyGraph.load_graph
 
