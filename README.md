@@ -7,7 +7,7 @@
 
 ***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with pre-detected planar primitives in a point cloud, where an adjacency graph is dynamically obtained. Though the tool is designed primarily to support compact surface reconstruction, it can be extrapolated to other applications as well.
 
-<div align="center">
+<div align="center" width="480">
   <img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/animation.gif"><br>
 </div>
 
