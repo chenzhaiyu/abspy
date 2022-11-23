@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Issue templates.
+- Github workflow to publish package.
 - Animation GIF in README.
 
 ### Changed
