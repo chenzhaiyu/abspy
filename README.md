@@ -1,7 +1,7 @@
 <img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/logo.png" width="480"/>
 
 -----------
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PyPI version](https://badge.fury.io/py/abspy.svg)](https://pypi.python.org/pypi/abspy/) [![Build status](https://readthedocs.org/projects/abspy/badge/)](https://abspy.readthedocs.io/en/latest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PyPI version](https://badge.fury.io/py/abspy.svg)](https://pypi.python.org/pypi/abspy/) [![Download](https://img.shields.io/pypi/dm/abspy)](https://pypistats.org/packages/abspy) [![Build status](https://readthedocs.org/projects/abspy/badge/)](https://abspy.readthedocs.io/en/latest/)
 
 ## Introduction
 
@@ -116,25 +116,25 @@ _, _ = adjacency_graph.cut()
 adjacency_graph.save_surface_obj('surface.obj', engine='rendering')
 ```
 
-Usage can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
+Usage can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
 ## Misc
 
 * **Why adaptive?**
 
-Adaptive space partitioning can significantly reduce computations for cell complex creation, compared to the exhaustive counterpart. The excessive number of cells from the latter not only hinders computation but also inclines to defective surfaces on subtle structures where inaccurate labels are more likely to be assigned.
+The adaptive strategy significantly unburdens computations for cell complex creation, compared to the exhaustive counterpart, yet retaining meaningful space partitions.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/adaptive.png)
 
-Run the benchmark on the number of candidate cells and runtime among adaptive partitioning, exhaustive partitioning, and SageMath's [hyperplane arrangements](https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/hyperplane_arrangement/arrangement.html):
+Run the benchmark comparing the adaptive, the exhaustive, and SageMath's [hyperplane arrangements](https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/hyperplane_arrangement/arrangement.html):
 
 ```bash
 python misc/benchmark.py
 ```
 
-* **How can abspy be used for surface reconstruction?**
+* **How can *abspy* be used for surface reconstruction?**
 
-With the cell complex constructed and its adjacency maintained, surface reconstruction can be addressed by a graph cut solver that classifies each cell as being *inside* or *outside* the object. The surface exists in between adjacent cells where one is *inside* and the other is *outside* &mdash; exactly where the cut is performed. For more information, refer to [Points2Poly](https://github.com/chenzhaiyu/points2poly) which wraps ***abspy*** for building surface reconstruction.
+With a constructed cell complex, the surface can be addressed by graph cut &mdash; in between adjacent cells where one being *inside* and the other being *outside* &mdash; exactly where the cut is performed. For more information, refer to ***[Points2Poly](https://github.com/chenzhaiyu/points2poly)*** which wraps ***abspy*** for building surface reconstruction.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
 

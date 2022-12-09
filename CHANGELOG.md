@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Issue templates.
-- Github workflow to publish package.
+- GitHub workflow to publish package.
 - Animation GIF in README.
+- Download stats badge in README.
+- License attribute in `setup.cfg`.
 
 ### Changed
 - Fix docs autofunction names `__init__`.
+- Clean Misc section in README.
 
 ## [0.2.2] - 2022-11-07
 ### Added
