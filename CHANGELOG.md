@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Animation GIF in README.
 - Download stats badge in README.
 - License attribute in `setup.cfg`.
+- `AdjacencyGraph.to_uids()`
+
+### Removed
+- Download stats in README.
 
 ### Changed
 - Fix docs autofunction names `__init__`.

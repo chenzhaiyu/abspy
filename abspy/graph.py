@@ -426,6 +426,22 @@ class AdjacencyGraph:
             Indices of nodes
         """
         return [self._uid_to_index(i) for i in uids]
+    
+    def to_uids(self, indices):
+        """
+        Convert indices to UIDs.
+
+        Parameters
+        ----------
+        indices: list of int
+            Indices of nodes
+
+        Returns
+        -------
+        as_list: list of int
+            UIDs of nodes
+        """
+        return [self._index_to_uid(i) for i in indices]
 
     def to_dict(self, weights_list):
         """
