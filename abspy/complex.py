@@ -652,11 +652,11 @@ class CellComplex:
             return points
         elif location == 'random_t':
             # strict random by triangulation and sampling
-            def tetrahedron_volume(a, b, c, d):
+            def tetrahedron_volume(a, b, c, d, epsilon=10e-6):
                 ab = b - a
                 ac = c - a
                 ad = d - a
-                v = abs(np.dot(ab, np.cross(ac, ad))) / 6.0
+                v = abs(np.dot(ab, np.cross(ac, ad))) / 6.0 + epsilon  # epsilon here to prevent empty volume
                 return v
 
             for cell in self.cells:
