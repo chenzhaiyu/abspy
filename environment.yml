@@ -1,0 +1,41 @@
+name: abspy
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cython=0.29.33=py39h227be39_0
+  - libmamba=1.2.0=hcea66bb_0
+  - libmambapy=1.2.0=py39hf0aba66_0
+  - matplotlib-base=3.6.3=py39he190548_0
+  - matplotlib-inline=0.1.6=pyhd8ed1ab_0
+  - numpy=1.24.1=py39h7360e5f_0
+  - pip=22.3.1=pyhd8ed1ab_0
+  - pyembree=0.1.6=py39h2ad29b5_3
+  - python_abi=3.9=3_cp39
+  - sage=9.4=hd8ed1ab_0
+  - sagelib=9.4=py39he34bcec_1
+  - sagemath-db-combinatorial-designs=20140630=1
+  - sagemath-db-conway-polynomials=0.5.0=ha878542_1
+  - sagemath-db-elliptic-curves=0.8.1=hecc5488_0
+  - sagemath-db-graphs=20210214=hd8ed1ab_0
+  - sagemath-db-polytopes=20170220=1
+  - sagetex=3.6.1=pyhd8ed1ab_0
+  - scikit-learn=1.2.1=py39h86b2a18_0
+  - scipy=1.10.0=py39h7360e5f_0
+  - sphinx=4.5.0=pyh6c4a22f_0
+  - sphinxcontrib-applehelp=1.0.4=pyhd8ed1ab_0
+  - sphinxcontrib-devhelp=1.0.2=py_0
+  - sphinxcontrib-htmlhelp=2.0.0=pyhd8ed1ab_0
+  - sphinxcontrib-jsmath=1.0.1=py_0
+  - sphinxcontrib-qthelp=1.0.3=py_0
+  - sphinxcontrib-serializinghtml=1.1.5=pyhd8ed1ab_2
+  - tqdm=4.64.1=pyhd8ed1ab_0
+  - trimesh=3.18.1=pyhd8ed1ab_0
+
+  - pip:
+    - colorlog==6.7.0
+    - sage-docbuild==9.4
+    - sagemath-standard==9.4
+    - setuptools==60.10.0
+    - wheel==0.37.1
+

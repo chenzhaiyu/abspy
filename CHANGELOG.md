@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Download stats badge in README.
 - License attribute in `setup.cfg`.
 - `AdjacencyGraph.to_uids()`
+- option `location=random_t` in `CellComplex.cell_representatives`
+- `environment.yml`
 
 ### Removed
 - Download stats in README.
@@ -19,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Fix docs autofunction names `__init__`.
 - Clean Misc section in README.
+- Rename `location=random` to `location=random_r` (rejection-based) in `CellComplex.cell_representatives`
 
 ## [0.2.2] - 2022-11-07
 ### Added

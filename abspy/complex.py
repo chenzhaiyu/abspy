@@ -16,16 +16,18 @@ from pathlib import Path
 import itertools
 import heapq
 from copy import copy
-from random import random, choices, uniform
+from random import random, choices, uniform, randint
 import pickle
 import time
 import multiprocessing
 
+import numpy
 import numpy as np
 from tqdm import trange
 import networkx as nx
 import trimesh
 from sage.all import polytopes, QQ, RR, Polyhedron
+from sage.geometry.triangulation.point_configuration import PointConfiguration
 
 from .logger import attach_to_log
 from .primitive import VertexGroup
@@ -619,7 +621,8 @@ class CellComplex:
         location: str
             'center' represents the average of the vertices of the polyhedron,
             'centroid' represents the center of mass/volume,
-            'random' represents random point(s),
+            'random_r' represents random point(s) by rejection,
+            'random_t' represents random point(s) by tetrahedralization,
             'star' represents star-like point(s)
         num: int
             number of samples per cell, only applies to 'random' and 'star'
@@ -629,12 +632,14 @@ class CellComplex:
         as_float: (n, 3) float for 'center' and 'centroid', or (m, n, 3) for 'random' and 'star'
             Representatives of cells in the complex.
         """
+        points = []
+
         if location == 'center':
             return [cell.center() for cell in self.cells]
         elif location == 'centroid':
             return [cell.centroid() for cell in self.cells]
-        elif location == 'random':
-            points = []
+        elif location == 'random_r':
+            # strict random by sampling and rejection
             for cell in self.cells:
                 bbox = cell.bounding_box()
                 points_cell = []
@@ -645,9 +650,43 @@ class CellComplex:
                         points_cell.append(sample)
                 points.append(points_cell)
             return points
+        elif location == 'random_t':
+            # strict random by triangulation and sampling
+            def tetrahedron_volume(a, b, c, d):
+                ab = b - a
+                ac = c - a
+                ad = d - a
+                v = abs(np.dot(ab, np.cross(ac, ad))) / 6.0
+                return v
+
+            for cell in self.cells:
+                points_cell = []
+
+                # triangulate cell
+                vertices = cell.vertices()
+                point_config = PointConfiguration(vertices)
+                triangulation = point_config.triangulate()
+                vertices = np.array([[vertices[v] for v in t] for t in triangulation])
+                volumes = [tetrahedron_volume(*tetra) for tetra in vertices]
+                options = list(range(len(volumes)))
+
+                for _ in range(num):
+                    # select one tetrahedron with volume-based probability
+                    choice = choices(options, volumes)[0]
+
+                    # compute vertex-based probability
+                    u, v, w = sorted([random() for _ in range(3)])
+                    u, v, w = u, v - u, w - v
+
+                    # randomly sample one point in the tetrahedron
+                    v1, v2, v3, v4 = vertices[choice]
+                    point = u * v1 + v * v2 + w * v3 + (1 - u - v - w) * v4
+                    points_cell.append(point)
+                points.append(points_cell)
+
+            return points
 
         elif location == 'star':
-            points = []
             for cell in self.cells:
                 vertices = cell.vertices_list()
                 if num <= len(vertices):
@@ -668,7 +707,7 @@ class CellComplex:
             return points
 
         else:
-            raise ValueError("expected 'center', 'centroid', 'random' or 'star' as mode, got {}".format(location))
+            raise ValueError("expected 'center', 'centroid', 'random_r', 'random_t' or 'star' as mode, got {}".format(location))
 
     def cells_in_mesh(self, filepath_mesh, engine='ray'):
         """

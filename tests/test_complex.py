@@ -34,13 +34,16 @@ def example_cell_complex_from_planes():
     cell_complex.print_info()
 
     # cell representatives
-    num_representatives = 100
-    representatives = cell_complex.cell_representatives(location='random', num=num_representatives)
+    num_representatives = 1000
+    representatives = cell_complex.cell_representatives(location='random_t', num=num_representatives)
     representatives = np.concatenate(representatives, axis=0)
     colours = np.zeros([num_representatives * cell_complex.num_cells, 4])
     for i in range(cell_complex.num_cells):
         colours[num_representatives * i: num_representatives * (i + 1)] = trimesh.visual.color.random_color()
+
+    # visualise cell representatives
     representatives_vis = trimesh.PointCloud(representatives, colours)
+    representatives_vis.export(dir_tests / 'test_output' / 'test_vis.ply', file_type='ply')
     representatives_vis.show()
 
     # cells inside reference mesh
