@@ -21,13 +21,13 @@ import pickle
 import time
 import multiprocessing
 
-import numpy
 import numpy as np
 from tqdm import trange
 import networkx as nx
 import trimesh
 from sage.all import polytopes, QQ, RR, Polyhedron
 from sage.geometry.triangulation.point_configuration import PointConfiguration
+from scipy.spatial import ConvexHull
 
 from .logger import attach_to_log
 from .primitive import VertexGroup
@@ -39,6 +39,7 @@ class CellComplex:
     """
     Class of cell complex from planar primitive arrangement.
     """
+
     def __init__(self, planes, bounds, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
                  build_graph=False, quiet=False):
         """
@@ -343,7 +344,8 @@ class CellComplex:
             extent_query = bound[1] - bound[0]  # 3,
 
             # abs(center_distance) * 2 < (query extent + target extent) for every dimension -> intersection
-            intersection_bound = np.where(np.all(center_distance * 2 < extent_query + extent_targets + epsilon, axis=1))[0]
+            intersection_bound = \
+            np.where(np.all(center_distance * 2 < extent_query + extent_targets + epsilon, axis=1))[0]
 
         # plane-AABB intersection test from extracted intersection_bound only
         # https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
@@ -404,7 +406,8 @@ class CellComplex:
         kwargs: (int, Polyhedron object, Polyhedron object, Polyhedron object)
             (neighbour index, positive cell, negative cell, neighbouring cell)
         """
-        n, cell_positive, cell_negative, cell_neighbour = kwargs['n'], kwargs['positive'], kwargs['negative'], kwargs['neighbour']
+        n, cell_positive, cell_negative, cell_neighbour = kwargs['n'], kwargs['positive'], kwargs['negative'], kwargs[
+            'neighbour']
 
         interface_positive = cell_positive.intersection(cell_neighbour)
 
@@ -499,7 +502,8 @@ class CellComplex:
 
                         kwargs = []
                         for n, cell in zip(neighbours, cells_neighbours):
-                            kwargs.append({'n': n, 'positive': cell_positive, 'negative': cell_negative, 'neighbour': cell})
+                            kwargs.append(
+                                {'n': n, 'positive': cell_positive, 'negative': cell_negative, 'neighbour': cell})
 
                         if pool is None:
                             for k in kwargs:
@@ -623,7 +627,8 @@ class CellComplex:
             'centroid' represents the center of mass/volume,
             'random_r' represents random point(s) by rejection,
             'random_t' represents random point(s) by tetrahedralization,
-            'star' represents star-like point(s)
+            'star' represents star-like point(s),
+            'boundary' represents boundary point(s) by triangulation
         num: int
             number of samples per cell, only applies to 'random' and 'star'
 
@@ -636,8 +641,10 @@ class CellComplex:
 
         if location == 'center':
             return [cell.center() for cell in self.cells]
+
         elif location == 'centroid':
             return [cell.centroid() for cell in self.cells]
+
         elif location == 'random_r':
             # strict random by sampling and rejection
             for cell in self.cells:
@@ -650,6 +657,7 @@ class CellComplex:
                         points_cell.append(sample)
                 points.append(points_cell)
             return points
+
         elif location == 'random_t':
             # strict random by triangulation and sampling
             def tetrahedron_volume(a, b, c, d, epsilon=10e-6):
@@ -683,10 +691,10 @@ class CellComplex:
                     point = u * v1 + v * v2 + w * v3 + (1 - u - v - w) * v4
                     points_cell.append(point)
                 points.append(points_cell)
-
             return points
 
         elif location == 'star':
+            # star-shaped sampling
             for cell in self.cells:
                 vertices = cell.vertices_list()
                 if num <= len(vertices):
@@ -699,15 +707,62 @@ class CellComplex:
                     points_cell = []
                     for vertex in vertices[:-1]:
                         points_cell.extend([vertex + (centroid - np.array(vertex)) / num_per_vertex * i
-                                           for i in range(num_per_vertex)])
+                                            for i in range(num_per_vertex)])
                     # last vertex consumes remainder points
-                    points_cell.extend([vertices[-1] + (centroid - np.array(vertices[-1])) / (num_remainder + num_per_vertex)
-                                       * i for i in range(num_remainder + num_per_vertex)])
+                    points_cell.extend(
+                        [vertices[-1] + (centroid - np.array(vertices[-1])) / (num_remainder + num_per_vertex)
+                         * i for i in range(num_remainder + num_per_vertex)])
                     points.append(points_cell)
             return points
 
+        elif location == 'boundary':
+            # boundary sampling
+            def triangle_area(a, b, c):
+                ab = b - a
+                ac = c - a
+                cross_prod = np.cross(ab, ac)
+                area = 0.5 * np.linalg.norm(cross_prod)
+                return area
+
+            for cell in self.cells:
+                points_cell = []
+                # get the list of facets and their areas
+                facets = cell.facets()
+                areas = [ConvexHull(facet.polyhedron().vertices()).volume for facet in facets]
+
+                # sample n facets with probabilities proportional to their areas
+                sampled_facets = choices(facets, weights=areas, k=num)
+
+                # sample a random point uniformly from each sampled facet
+                for f in sampled_facets:
+                    vertices = f.vertices()
+                    point_config = PointConfiguration(vertices)
+                    triangulation = point_config.triangulate()  # degrade to 2D triangulation
+                    vertices = np.array([[vertices[v] for v in t] for t in triangulation])
+
+                    # assign weights to each triangle based on its area
+                    areas = [triangle_area(*tri) for tri in vertices]
+
+                    # triangle options to choose from
+                    options = list(range(len(areas)))
+                    choice = choices(options, areas)[0]
+
+                    # compute vertex-based probability
+                    u, v = sorted([random() for _ in range(2)])
+                    u, v = u, v - u
+
+                    # randomly sample one point in the tetrahedron
+                    v1, v2, v3 = vertices[choice]
+                    point = u * v1 + v * v2 + (1 - u - v) * v3
+                    points_cell.append(point)
+
+                points.append(points_cell)
+            return points
+
         else:
-            raise ValueError("expected 'center', 'centroid', 'random_r', 'random_t' or 'star' as mode, got {}".format(location))
+            raise ValueError(
+                "expected 'center', 'centroid', 'random_r', 'random_t', 'star' or 'boundary' as mode, got {}".format(
+                    location))
 
     def cells_in_mesh(self, filepath_mesh, engine='ray'):
         """

@@ -35,7 +35,7 @@ def example_cell_complex_from_planes():
 
     # cell representatives
     num_representatives = 1000
-    representatives = cell_complex.cell_representatives(location='random_t', num=num_representatives)
+    representatives = cell_complex.cell_representatives(location='boundary', num=num_representatives)
     representatives = np.concatenate(representatives, axis=0)
     colours = np.zeros([num_representatives * cell_complex.num_cells, 4])
     for i in range(cell_complex.num_cells):
