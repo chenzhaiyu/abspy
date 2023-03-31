@@ -345,7 +345,7 @@ class CellComplex:
 
             # abs(center_distance) * 2 < (query extent + target extent) for every dimension -> intersection
             intersection_bound = \
-            np.where(np.all(center_distance * 2 < extent_query + extent_targets + epsilon, axis=1))[0]
+                np.where(np.all(center_distance * 2 < extent_query + extent_targets + epsilon, axis=1))[0]
 
         # plane-AABB intersection test from extracted intersection_bound only
         # https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
@@ -686,7 +686,7 @@ class CellComplex:
                     u, v, w = sorted([random() for _ in range(3)])
                     u, v, w = u, v - u, w - v
 
-                    # randomly sample one point in the tetrahedron
+                    # randomly sample one point within the tetrahedron
                     v1, v2, v3, v4 = vertices[choice]
                     point = u * v1 + v * v2 + w * v3 + (1 - u - v - w) * v4
                     points_cell.append(point)
@@ -726,36 +726,35 @@ class CellComplex:
 
             for cell in self.cells:
                 points_cell = []
-                # get the list of facets and their areas
+
+                # get the list of facets
                 facets = cell.facets()
-                areas = [ConvexHull(facet.polyhedron().vertices()).volume for facet in facets]
 
-                # sample n facets with probabilities proportional to their areas
-                sampled_facets = choices(facets, weights=areas, k=num)
-
-                # sample a random point uniformly from each sampled facet
-                for f in sampled_facets:
+                # aggregate all triangles
+                triangles = []
+                for f in facets:
                     vertices = f.vertices()
                     point_config = PointConfiguration(vertices)
                     triangulation = point_config.triangulate()  # degrade to 2D triangulation
                     vertices = np.array([[vertices[v] for v in t] for t in triangulation])
+                    triangles.extend(vertices)
 
-                    # assign weights to each triangle based on its area
-                    areas = [triangle_area(*tri) for tri in vertices]
+                # assign triangle-wise probabilities proportional to their areas
+                areas = [triangle_area(*triangle) for triangle in triangles]
+                options = list(range(len(areas)))
 
-                    # triangle options to choose from
-                    options = list(range(len(areas)))
+                for _ in range(num):
+                    # select one triangle with area-based probability
                     choice = choices(options, areas)[0]
 
                     # compute vertex-based probability
                     u, v = sorted([random() for _ in range(2)])
                     u, v = u, v - u
 
-                    # randomly sample one point in the tetrahedron
-                    v1, v2, v3 = vertices[choice]
+                    # randomly sample one point within the triangle
+                    v1, v2, v3 = triangles[choice]
                     point = u * v1 + v * v2 + (1 - u - v) * v3
                     points_cell.append(point)
-
                 points.append(points_cell)
             return points
 
