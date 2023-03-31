@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Download stats badge in README.
 - License attribute in `setup.cfg`.
 - `AdjacencyGraph.to_uids()`
-- option `location=random_t` in `CellComplex.cell_representatives`
+- option `location=random_t` and `location=boundary` in `CellComplex.cell_representatives`
 - `environment.yml`
 
 ### Removed
