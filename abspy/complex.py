@@ -627,14 +627,14 @@ class CellComplex:
             'centroid' represents the center of mass/volume,
             'random_r' represents random point(s) by rejection,
             'random_t' represents random point(s) by tetrahedralization,
-            'star' represents star-like point(s),
+            'skeleton' represents skeleton point(s),
             'boundary' represents boundary point(s) by triangulation
         num: int
             number of samples per cell, only applies to 'random' and 'star'
 
         Returns
         -------
-        as_float: (n, 3) float for 'center' and 'centroid', or (m, n, 3) for 'random' and 'star'
+        as_float: (n, 3) float for 'center' and 'centroid', or (m, n, 3) for 'random' and 'skeleton' and 'boundary'
             Representatives of cells in the complex.
         """
         points = []
@@ -693,7 +693,7 @@ class CellComplex:
                 points.append(points_cell)
             return points
 
-        elif location == 'star':
+        elif location == 'skeleton':
             # star-shaped sampling
             for cell in self.cells:
                 vertices = cell.vertices_list()
@@ -717,11 +717,11 @@ class CellComplex:
 
         elif location == 'boundary':
             # boundary sampling
-            def triangle_area(a, b, c):
+            def triangle_area(a, b, c, epsilon=10e-6):
                 ab = b - a
                 ac = c - a
                 cross_prod = np.cross(ab, ac)
-                area = 0.5 * np.linalg.norm(cross_prod)
+                area = 0.5 * np.linalg.norm(cross_prod) + epsilon
                 return area
 
             for cell in self.cells:
@@ -760,7 +760,7 @@ class CellComplex:
 
         else:
             raise ValueError(
-                "expected 'center', 'centroid', 'random_r', 'random_t', 'star' or 'boundary' as mode, got {}".format(
+                "expected 'center', 'centroid', 'random_r', 'random_t', 'skeleton' or 'boundary' as mode, got {}".format(
                     location))
 
     def cells_in_mesh(self, filepath_mesh, engine='ray'):
