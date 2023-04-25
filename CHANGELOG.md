@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AdjacencyGraph.to_uids()`
 - option `location=random_t` and `location=boundary` in `CellComplex.cell_representatives`
 - `environment.yml`
+- `CellComplex.cells_boundary`
 
 ### Removed
 - Download stats in README.

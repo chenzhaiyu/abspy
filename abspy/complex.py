@@ -763,6 +763,29 @@ class CellComplex:
                 "expected 'center', 'centroid', 'random_r', 'random_t', 'skeleton' or 'boundary' as mode, got {}".format(
                     location))
 
+    def cells_boundary(self, epsilon=1e-5):
+        """
+        Return indices of boundary cells (touching the bounds).
+        These cells could be excluded from a valid reconstruction, only when a significant padding exists.
+
+        Parameters
+        ----------
+        epsilon: float
+            Distance tolerance
+
+        Returns
+        -------
+        as_int: (n, ) int
+            Indices of boundary cells
+        """
+        initial_bound = np.array(self.initial_bound)
+        indices = []
+        for index, cell_bound in enumerate(self.cells_bounds):
+            if (cell_bound[0] < np.array(initial_bound[0]) + epsilon).any() \
+                    or (cell_bound[1] > initial_bound[1] - epsilon).any():
+                indices.append(index)
+        return indices
+
     def cells_in_mesh(self, filepath_mesh, engine='ray'):
         """
         Return indices of cells that are inside a reference mesh.

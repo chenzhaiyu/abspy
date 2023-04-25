@@ -33,6 +33,10 @@ def example_cell_complex_from_planes():
     # print out info
     cell_complex.print_info()
 
+    # boundary cells
+    cells_boundary = cell_complex.cells_boundary()
+    print(f'boundary cells: {cells_boundary}')
+
     # cell representatives
     num_representatives = 1000
     representatives = cell_complex.cell_representatives(location='skeleton', num=num_representatives)
