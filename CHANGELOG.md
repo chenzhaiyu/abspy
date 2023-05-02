@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Fix docs autofunction names `__init__`.
+- Fix planar segment extraction from `VertexGroupReference`
 - Clean Misc section in README.
 - Rename `location=random` to `location=random_r` (rejection-based) in `CellComplex.cell_representatives`
 
