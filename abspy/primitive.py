@@ -614,6 +614,32 @@ class VertexGroupReference:
             self.planes.append(plane)
             self.bounds.append(self._points_bound(vertices))
             self.points_grouped.append(points)
+
+        # self.mesh.facets do not cover all faces
+        faces_extracted = np.concatenate(self.mesh.facets)
+        faces_left = np.setdiff1d(np.arange(len(self.mesh.faces)), faces_extracted)
+
+        for face_index in faces_left:
+            # group corresponding samples by faces
+            points = []
+            sample_indices = np.where(face_indices == face_index)[0]
+            if len(sample_indices) > 0:
+                points.append(samples[sample_indices])
+
+            # vertices
+            vertices = self.mesh.faces[face_index]
+            vertices = self.mesh.vertices[vertices]
+
+            # append vertices in case there is no sampled points in this group
+            points.append(vertices)
+            points = np.concatenate(points)
+
+            # calculate parameters
+            plane = VertexGroup.fit_plane(vertices)
+            self.planes.append(plane)
+            self.bounds.append(self._points_bound(vertices))
+            self.points_grouped.append(points)
+
         self.points = np.concatenate(self.points_grouped)
 
     def save_vg(self, filepath):
