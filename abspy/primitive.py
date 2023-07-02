@@ -28,7 +28,7 @@ class VertexGroup:
     Class for manipulating planar primitives.
     """
 
-    def __init__(self, filepath, process=True, quiet=False):
+    def __init__(self, filepath, process=True, quiet=False, refit=True, global_group=False):
         """
         Init VertexGroup.
         Class for manipulating planar primitives.
@@ -41,6 +41,10 @@ class VertexGroup:
             Immediate processing if set True
         quiet: bool
             Disable logging if set True
+        refit: bool
+            Refit plane parameters if set True
+        global_group: bool
+            Remove the first group as an unnecessary global one containing all subgroups if set True
         """
         if quiet:
             logger.disabled = True
@@ -58,6 +62,9 @@ class VertexGroup:
 
         self.vgroup_ascii = self.load_file()
         self.vgroup_binary = None
+
+        self.refit = refit
+        self.global_group = global_group
 
         if process:
             self.process()
@@ -171,7 +178,19 @@ class VertexGroup:
             Points that belong to no group
         """
         is_primitive = [line.startswith('group_num_point') for line in self.vgroup_ascii]
+        is_parameter = [line.startswith('group_parameters') for line in self.vgroup_ascii]
+
         primitives = [self.vgroup_ascii[line] for line in np.where(is_primitive)[0] + 1]  # lines of groups in the file
+        parameters = [self.vgroup_ascii[line] for line in np.where(is_parameter)[0]]
+
+        # remove global group if there is one
+        if self.global_group:
+            primitives = primitives[1:]
+            parameters = parameters[1:]
+
+        if len(primitives) != len(parameters):
+            raise ValueError('group attributes mismatch')
+
         params = []
         bounds = []
         groups = []
@@ -180,11 +199,18 @@ class VertexGroup:
             point_indices = np.fromstring(p, sep=' ').astype(np.int64)
             grouped_indices.update(point_indices)
             points = self.points[point_indices]
-            param = self.fit_plane(points, mode='PCA')
-            if param is None:
+            if self.refit:
+                param = self.fit_plane(points, mode='PCA')
+            else:
+                param = np.array([float(j) for j in parameters[i][18:-1].split()])
+            if param is None or len(param) != 4:
                 continue
             params.append(param)
-            bounds.append(self._points_bound(points))
+
+            if len(point_indices) > 0:
+                bounds.append(self._points_bound(points))
+            else:
+                bounds.append(self._points_bound(self.points))  # big bound
             groups.append(points)
         ungrouped_indices = set(range(len(self.points))).difference(grouped_indices)
         ungrouped_points = self.points[list(ungrouped_indices)]  # points that belong to no groups
