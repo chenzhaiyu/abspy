@@ -196,7 +196,7 @@ class VertexGroup:
         groups = []
         grouped_indices = set()  # indices of points being grouped
         for i, p in enumerate(primitives):
-            point_indices = np.fromstring(p, sep=' ').astype(np.int64)
+            point_indices = np.fromstring(p, sep=' ', dtype=np.int64)
             grouped_indices.update(point_indices)
             points = self.points[point_indices]
             if self.refit:
