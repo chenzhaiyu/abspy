@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Add options to refit and skip global vertex group.
 ### Removed
 ### Changed
 
@@ -16,19 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Animation GIF in README.
 - Download stats badge in README.
 - License attribute in `setup.cfg`.
-- `AdjacencyGraph.to_uids()`
-- option `location=random_t` and `location=boundary` in `CellComplex.cell_representatives`
-- `environment.yml`
-- `CellComplex.cells_boundary()`
+- `AdjacencyGraph.to_uids()`.
+- option `location=random_t` and `location=boundary` in `CellComplex.cell_representatives`.
+- Add `environment.yml`.
+- `CellComplex.cells_boundary()`.
 
 ### Removed
 - Download stats in README.
 
 ### Changed
 - Fix docs autofunction names `__init__`.
-- Fix planar segment extraction from `VertexGroupReference`
+- Fix planar segment extraction from `VertexGroupReference`.
 - Clean Misc section in README.
-- Rename `location=random` to `location=random_r` (rejection-based) in `CellComplex.cell_representatives()`
+- Rename `location=random` to `location=random_r` (rejection-based) in `CellComplex.cell_representatives()`.
 
 ## [0.2.2] - 2022-11-07
 ### Added

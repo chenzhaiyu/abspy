@@ -42,15 +42,14 @@ pip install pyglet pyembree
 For Linux and macOS users, the easiest is to install from [conda-forge](https://conda-forge.org/):
 
 ```bash
-conda config --add channels conda-forge
-conda install sage
+conda install sage=9.4 -c conda-forge
 ```
 
 Alternatively, you can use [mamba](https://github.com/mamba-org/mamba) for faster parsing and package installation:
 
 ```bash
-conda install mamba
-mamba install sage
+conda install mamba -c conda-forge
+mamba install sage=9.4 -c conda-forge
 ```
 
 For Windows users, you may have to build SageMath from source or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html).
