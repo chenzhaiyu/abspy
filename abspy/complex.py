@@ -465,18 +465,19 @@ class CellComplex:
             indices_parents = []
 
             for index_cell in indices_cells:
+                # if cell_positive.is_empty() or cell_negative.is_empty():
+                """
+                cannot use is_empty() predicate for degenerate cases:
+                    sage: Polyhedron(vertices=[[0, 1, 2]])
+                    A 0-dimensional polyhedron in ZZ^3 defined as the convex hull of 1 vertex
+                    sage: Polyhedron(vertices=[[0, 1, 2]]).is_empty()
+                    False
+                """
                 cell_positive = hspace_positive.intersection(self.cells[index_cell])
+                if cell_positive.dim() != 3:
+                    continue
                 cell_negative = hspace_negative.intersection(self.cells[index_cell])
-
-                if cell_positive.dim() != 3 or cell_negative.dim() != 3:
-                    # if cell_positive.is_empty() or cell_negative.is_empty():
-                    """
-                    cannot use is_empty() predicate for degenerate cases:
-                        sage: Polyhedron(vertices=[[0, 1, 2]])
-                        A 0-dimensional polyhedron in ZZ^3 defined as the convex hull of 1 vertex
-                        sage: Polyhedron(vertices=[[0, 1, 2]]).is_empty()
-                        False
-                    """
+                if cell_negative.dim() != 3:
                     continue
 
                 # incrementally build the adjacency graph
