@@ -75,9 +75,10 @@ def example_cell_complex_from_mesh():
 
     # construct cell complex
     cell_complex = CellComplex(np.array(vertex_group_reference.planes), np.array(vertex_group_reference.bounds),
+                               np.array(vertex_group_reference.obbs), np.array(vertex_group_reference.points), 
                                build_graph=True, quiet=False)
     cell_complex.construct()
-    cell_complex.visualise()
+    cell_complex.visualise()   
 
 
 if __name__ == '__main__':

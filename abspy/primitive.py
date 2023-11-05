@@ -57,6 +57,7 @@ class VertexGroup:
         self.points = None
         self.planes = None
         self.bounds = None
+        self.obbs = None
         self.points_grouped = None
         self.points_ungrouped = None
 
@@ -142,7 +143,7 @@ class VertexGroup:
         """
         logger.info('processing {}'.format(self.filepath))
         self.points = self.get_points()
-        self.planes, self.bounds, self.points_grouped, self.points_ungrouped = self.get_primitives()
+        self.planes, self.bounds, self.points_grouped, self.points_ungrouped, self.obbs= self.get_primitives()
         self.processed = True
 
     def get_points(self, row=1):
@@ -176,6 +177,8 @@ class VertexGroup:
             Groups of points
         ungrouped_points: (u, 3) float
             Points that belong to no group
+        obbs: (n, 4, 3) float
+            Oriented bounding box of the primitives
         """
         is_primitive = [line.startswith('group_num_point') for line in self.vgroup_ascii]
         is_parameter = [line.startswith('group_parameters') for line in self.vgroup_ascii]
@@ -194,18 +197,21 @@ class VertexGroup:
         params = []
         bounds = []
         groups = []
+        obbs = []
         grouped_indices = set()  # indices of points being grouped
         for i, p in enumerate(primitives):
             point_indices = np.fromstring(p, sep=' ', dtype=np.int64)
             grouped_indices.update(point_indices)
             points = self.points[point_indices]
             if self.refit:
-                param = self.fit_plane(points, mode='PCA')
+                param,obb = self.fit_plane(points, mode='PCA')
             else:
                 param = np.array([float(j) for j in parameters[i][18:-1].split()])
+                obb = np.array([[-np.inf, -np.inf, -np.inf ],[-np.inf, np.inf, -np.inf],[np.inf, np.inf, -np.inf],[np.inf, -np.inf, -np.inf]]) 
             if param is None or len(param) != 4:
                 continue
             params.append(param)
+            obbs.append(obb)
 
             if len(point_indices) > 0:
                 bounds.append(self._points_bound(points))
@@ -214,7 +220,7 @@ class VertexGroup:
             groups.append(points)
         ungrouped_indices = set(range(len(self.points))).difference(grouped_indices)
         ungrouped_points = self.points[list(ungrouped_indices)]  # points that belong to no groups
-        return np.array(params), np.array(bounds), np.array(groups, dtype=object), np.array(ungrouped_points)
+        return np.array(params), np.array(bounds), np.array(groups, dtype=object), np.array(ungrouped_points), np.array(obbs)
 
     @staticmethod
     def _points_bound(points):
@@ -295,7 +301,7 @@ class VertexGroup:
         self.points = (self.points - offset) / (bounds.max() * scale) + centroid
 
         # update planes and bounds as point coordinates has changed
-        self.planes, self.bounds, self.points_grouped, _ = self.get_primitives()
+        self.planes, self.bounds, self.points_grouped, _ , self.obbs = self.get_primitives()
 
         # safely sample points after planes are extracted
         if num:
@@ -319,6 +325,8 @@ class VertexGroup:
         ----------
         param: (4,) float
             Plane parameters, (a, b, c, d) as in a * x + b * y + c * z = -d
+        obb: (4,3) float
+            Oriented bounding box of the plane
         """
         assert mode == 'PCA' or mode == 'LSA'
         if len(points) < 3:
@@ -334,6 +342,12 @@ class VertexGroup:
             pca = PCA(n_components=3)
             pca.fit(points)
             eig_vec = pca.components_
+            points_trans = pca.transform(points)
+            point_min = np.amin(points_trans, axis=0)
+            point_max = np.amax(points_trans, axis=0)
+            obb = np.array([[point_min[0],point_min[1],0],[point_min[0],point_max[1],0],[point_max[0],point_max[1],0],[point_max[0],point_min[1],0]])
+            obb = pca.inverse_transform(obb)
+                
             logger.debug('explained_variance_ratio: {}'.format(pca.explained_variance_ratio_))
 
             # normal vector of minimum variance
@@ -345,7 +359,7 @@ class VertexGroup:
             d = -centroid.dot(normal)
             param = np.append(normal, d)
 
-        return param
+        return param,obb
 
     def append_planes(self, additional_planes, additional_points=None):
         """
@@ -586,6 +600,7 @@ class VertexGroupReference:
         self.points = None
         self.planes = []
         self.bounds = []
+        self.obbs = []
         self.points_grouped = []
 
         self.mesh = trimesh.load_mesh(self.filepath)
@@ -636,9 +651,10 @@ class VertexGroupReference:
             points = np.concatenate(points)
 
             # calculate parameters
-            plane = VertexGroup.fit_plane(vertices)
+            plane,obb = VertexGroup.fit_plane(vertices)
             self.planes.append(plane)
             self.bounds.append(self._points_bound(vertices))
+            self.obbs.append(obb)
             self.points_grouped.append(points)
 
         # self.mesh.facets do not cover all faces
@@ -661,8 +677,9 @@ class VertexGroupReference:
             points = np.concatenate(points)
 
             # calculate parameters
-            plane = VertexGroup.fit_plane(vertices)
+            plane,obb = VertexGroup.fit_plane(vertices)
             self.planes.append(plane)
+            self.obbs.append(obb)
             self.bounds.append(self._points_bound(vertices))
             self.points_grouped.append(points)
 

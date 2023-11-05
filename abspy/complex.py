@@ -27,7 +27,7 @@ import networkx as nx
 import trimesh
 from sage.all import polytopes, QQ, RR, Polyhedron
 from sage.geometry.triangulation.point_configuration import PointConfiguration
-from scipy.spatial import ConvexHull
+from sklearn.decomposition import PCA
 
 from .logger import attach_to_log
 from .primitive import VertexGroup
@@ -40,7 +40,7 @@ class CellComplex:
     Class of cell complex from planar primitive arrangement.
     """
 
-    def __init__(self, planes, bounds, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
+    def __init__(self, planes, bounds, obbs = None, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
                  build_graph=False, quiet=False):
         """
         Init CellComplex.
@@ -52,6 +52,8 @@ class CellComplex:
             Plana parameters
         bounds: (n, 2, 3) float
             Corresponding bounding box bounds of the planar primitives
+        obbs: (n, 4, 3) float
+            Corresponding oriented bounding box bounds of the planar primitives
         points: (n, ) object of float
             Points grouped into primitives, points[any]: (m, 3)
         initial_bound: None or (2, 3) float
@@ -69,9 +71,9 @@ class CellComplex:
             logger.disabled = True
 
         self.bounds = bounds  # numpy.array over RDF
+        self.obbs = obbs
         self.planes = planes  # numpy.array over RDF
         self.points = points
-
         # missing planes due to occlusion or incapacity of RANSAC
         self.additional_planes = additional_planes
 
@@ -131,6 +133,7 @@ class CellComplex:
         planes = list(copy(self.planes))
         bounds = list(copy(self.bounds))
         points = list(copy(self.points))
+        obbs = list(copy(self.obbs))
 
         # pre-compute cosine of theta
         theta_cos = np.cos(theta)
@@ -163,7 +166,7 @@ class CellComplex:
                 if distance < epsilon and pair[1] not in to_merge and pair[2] not in to_merge:
                     # merge the two planes
                     points_merged = np.concatenate([points[pair[1]], points[pair[2]]])
-                    planes_merged = VertexGroup.fit_plane(points_merged)
+                    planes_merged,obbs_merged = VertexGroup.fit_plane(points_merged)
                     bounds_merged = [np.min([bounds[pair[1]][0], bounds[pair[2]][0]], axis=0).tolist(),
                                      np.max([bounds[pair[1]][1], bounds[pair[2]][1]], axis=0).tolist()]
 
@@ -181,6 +184,7 @@ class CellComplex:
                     points.append(points_merged)
                     bounds.append(bounds_merged)
                     planes.append(planes_merged)
+                    obbs.append(obbs_merged)
 
             else:
                 # no more possible coplanar pairs can exist in this priority queue
@@ -191,12 +195,14 @@ class CellComplex:
             del points[i]
             del bounds[i]
             del planes[i]
+            del obbs[i]
 
         logger.info('{} pairs of planes merged'.format(len(to_merge)))
 
         self.planes = np.array(planes)
         self.bounds = np.array(bounds)
         self.points = np.array(points, dtype=object)
+        self.obbs = np.array(obbs)
 
     def prioritise_planes(self, prioritise_verticals=True):
         """
@@ -228,12 +234,24 @@ class CellComplex:
         # reorder both the planes and their bounds
         self.planes = self.planes[indices_priority]
         self.bounds = self.bounds[indices_priority]
+        # reorder obbs and points if they are not None
+        if self.obbs is not None:
+            self.obbs = self.obbs[indices_priority]
+        if self.points is not None:
+            self.points = self.points[indices_priority]
+       
 
         # append additional planes with highest priority
         if self.additional_planes:
             self.planes = np.concatenate([self.additional_planes, self.planes], axis=0)
             additional_bounds = [[[-np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf]]] * len(self.additional_planes)
             self.bounds = np.concatenate([additional_bounds, self.bounds], axis=0)  # never miss an intersection
+            if self.obbs is not None:
+                additional_obbs = [[[-np.inf, -np.inf, -np.inf ], [-np.inf, np.inf, -np.inf],[np.inf, np.inf, -np.inf],[np.inf, -np.inf, -np.inf]]] * len(self.additional_planes)
+                self.obbs = np.concatenate([additional_obbs, self.obbs], axis=0)
+            if self.points is not None:
+                additional_points = np.empty((1))*len(self.additional_planes)
+                self.points = np.concatenate([additional_points, self.points], axis=0)
 
         logger.debug('ordered planes: {}'.format(self.planes))
         logger.debug('ordered bounds: {}'.format(self.bounds))
@@ -358,6 +376,132 @@ class CellComplex:
 
         return intersection_bound[intersection_plane]
 
+    def _intersect_bound_plane2(self, plane, obb, points, indices_cells, exhaustive=False, epsilon=10e-5):
+        """
+        Further-intersection test between query primitive and existing cells,
+        based on AABB and plane parameters.
+
+        Parameters
+        ----------
+        plane: (4,) float
+            Plane parameters
+        obb: (4, 3) float
+            Oriented bounding box of the plane
+        indices_cells: (n,) int
+            Indices of existing cells whose bounds intersect with bounds of the query primitive
+            and intersect with the supporting plane of the primitive in the first intersection test
+        exhaustive: bool
+            Exhaustive partitioning, only for benchmarking
+        epsilon: float
+            Distance tolerance
+
+        Returns
+        -------
+        as_int: (n,) int
+            Indices of existing cells whose bounds intersect with bounds of the query primitive
+            and intersect with the supporting plane of the primitive
+        """
+
+        assert len(indices_cells), 'intersection failed! check the initial bound'
+
+        if exhaustive or points is None:
+            return indices_cells
+        
+        intersection_bound = indices_cells
+
+        vertices_query = obb # 4*3
+        norm_query = plane[:3]/np.linalg.norm(plane[:3]) # 3,
+        edges_query = np.array([obb[0,:]-obb[1,:],obb[1,:]-obb[2,:]]) # 2*3
+
+        vertices_targets = [cell.vertices_list() for i,cell in enumerate(self.cells) if i in intersection_bound]
+        norms_targets = [self._cell_norm(vertices) for vertices in vertices_targets] 
+        norms_targets = np.array(norms_targets) # N * 3 * 3
+        edges_targets = norms_targets # N * 3 * 3
+
+        # all vertex lists have the same length for parallel computation
+        max_vertices = max([len(vertices) for vertices in vertices_targets])
+        vertices_targets = [vertices + [vertices[-1]]*(max_vertices-len(vertices)) for vertices in vertices_targets]
+        vertices_targets = np.array(vertices_targets) # N * M * 3
+      
+        # there are 4 possible seperating axis
+        # 1. plane normal
+        axis = norm_query #3,
+        projection_query = np.einsum('ni,i->n', vertices_query, axis) # 4,
+        min_projection_query = np.min(projection_query, axis=0) #1,
+        max_projection_query = np.max(projection_query, axis=0) #1,
+        projection_targets = np.einsum('nmi,i->nm', vertices_targets, axis)
+        min_projection_targets = np.min(projection_targets, axis=1) #m,
+        max_projection_targets = np.max(projection_targets, axis=1) #m,
+        condition1 = (min_projection_query > max_projection_targets+epsilon) | (min_projection_targets > max_projection_query+epsilon)        
+
+        # 2. cell_obb normals
+        axis = norms_targets # N * 3 * 3
+        projection_query = np.einsum ('nmi,bi->nmb', axis,vertices_query) # N * 3 * 4
+        min_projection_query = np.min(projection_query, axis=2) # N * 3
+        max_projection_query = np.max(projection_query, axis=2) # N * 3
+        projection_targets = np.einsum('nmi,nbi->nmb', axis, vertices_targets) # N * 3 * M 
+        min_projection_targets = np.min(projection_targets, axis=2)  # N * 3 
+        max_projection_targets = np.max(projection_targets, axis=2)  # N * 3
+        condition2 = (min_projection_query > max_projection_targets+epsilon) | (min_projection_targets > max_projection_query+epsilon)
+        condition2 = np.any(condition2, axis=1)
+
+        # 3. plane normal cross plane_obb edges
+        axis = np.cross(norm_query,edges_query) # 2 * 3
+        axis = axis / np.linalg.norm(axis, axis=1, keepdims=True)
+        projection_query =  np.einsum('ni,mi->nm', axis , vertices_query) # 2 * 4
+        min_projection_query = np.min(projection_query, axis=1) # 2 *3
+        max_projection_query = np.max(projection_query, axis=1) #2*3
+        projection_targets = np.einsum('ni,mbi->mnb', axis, vertices_targets)
+        min_projection_targets = np.min(projection_targets, axis=2)
+        max_projection_targets = np.max(projection_targets, axis=2) #m*2*3
+        condition3 =(min_projection_query > max_projection_targets+epsilon) | (min_projection_targets > max_projection_query+epsilon)
+        condition3 = np.any(condition3, axis=1)
+
+        # 4. cell_obb edges cross plane_obb edges
+        axis = np.cross(edges_query[np.newaxis,np.newaxis,:,:],edges_targets[:,:,np.newaxis,:]) # N * 3 * 2 * 3
+        axis = axis.reshape(-1,6,3) # N * 6 * 3
+        axis = axis / np.linalg.norm(axis, axis=2, keepdims=True)
+        projection_query = np.einsum('nmi,bi->nmb', axis , vertices_query) # N * 6 * 4
+        min_projection_query = np.min(projection_query, axis=2) # N * 6
+        max_projection_query = np.max(projection_query, axis=2) # N * 6
+        projection_targets = np.einsum('mni,mbi->mnb', axis, vertices_targets) # N * 6 * M
+        min_projection_targets = np.min(projection_targets, axis=2) # N * 6
+        max_projection_targets = np.max(projection_targets, axis=2)  # N * 6
+        condition4 = (min_projection_query > max_projection_targets+epsilon) | (min_projection_targets > max_projection_query+epsilon)
+        condition4 = np.any(condition4, axis=1)
+
+        # combine all conditions
+        condition = condition1|condition2 |condition3 |condition4
+        condition = np.array([not item for item in condition])
+        intersection_plane = np.where(condition)[0]
+        intersection_plane = intersection_bound[intersection_plane]
+
+        # if the obb is unbouded, the intersection is not complete
+        if obb[0][0]==-np.inf and np.any(intersection_bound == 0) and not np.any(intersection_plane == 0):
+            intersection_plane = np.append(intersection_plane,0)
+
+        return intersection_plane
+   
+    @staticmethod
+    def _cell_norm(vertices):
+        """
+        Compute normals of a cell's oriented bounding box.
+
+        Parameters
+        ----------
+        vertices: (n, 3) float
+            cell's vertices list
+
+        Returns
+        -------        
+        normals: (3,3) float
+            Normals of the cell's oriented bounding box
+        """
+        pca = PCA(n_components=3)
+        pca.fit(vertices)
+        normals = pca.components_
+        return normals
+
     @staticmethod
     def _inequalities(plane):
         """
@@ -438,6 +582,7 @@ class CellComplex:
         ----------
         exhaustive: bool
             Do exhaustive partitioning if set True
+        
         num_workers: int
             Number of workers for multi-processing, disabled if set 0
         """
@@ -453,6 +598,10 @@ class CellComplex:
             # bounding box intersection test
             # indices of existing cells with potential intersections
             indices_cells = self._intersect_bound_plane(self.bounds[i], self.planes[i], exhaustive)
+
+            # if self.obbs is not None and self.points is not None:
+                # indices_cells = self._intersect_bound_plane2(self.planes[i], self.obbs[i], self.points[i], indices_cells, exhaustive)
+            
             assert len(indices_cells), 'intersection failed! check the initial bound'
 
             # half-spaces defined by inequalities
@@ -465,19 +614,18 @@ class CellComplex:
             indices_parents = []
 
             for index_cell in indices_cells:
-                # if cell_positive.is_empty() or cell_negative.is_empty():
-                """
-                cannot use is_empty() predicate for degenerate cases:
-                    sage: Polyhedron(vertices=[[0, 1, 2]])
-                    A 0-dimensional polyhedron in ZZ^3 defined as the convex hull of 1 vertex
-                    sage: Polyhedron(vertices=[[0, 1, 2]]).is_empty()
-                    False
-                """
                 cell_positive = hspace_positive.intersection(self.cells[index_cell])
-                if cell_positive.dim() != 3:
-                    continue
                 cell_negative = hspace_negative.intersection(self.cells[index_cell])
-                if cell_negative.dim() != 3:
+
+                if cell_positive.dim() != 3 or cell_negative.dim() != 3:
+                    # if cell_positive.is_empty() or cell_negative.is_empty():
+                    """
+                    cannot use is_empty() predicate for degenerate cases:
+                        sage: Polyhedron(vertices=[[0, 1, 2]])
+                        A 0-dimensional polyhedron in ZZ^3 defined as the convex hull of 1 vertex
+                        sage: Polyhedron(vertices=[[0, 1, 2]]).is_empty()
+                        False
+                    """
                     continue
 
                 # incrementally build the adjacency graph
