@@ -50,13 +50,6 @@ def example_cell_complex_from_planes():
     representatives_vis.export(dir_tests / 'test_output' / 'test_vis.ply', file_type='ply')
     representatives_vis.show()
 
-    # cells inside reference mesh
-    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_mesh_manifold.obj')
-
-    # visualise the inside cells (only if pyglet installation is found and valid indices are provided)
-    if len(cells_in_mesh):
-        cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
-
     # save cell complex CC file
     cell_complex.save(dir_tests / 'test_output' / 'complex.cc')
 
@@ -71,15 +64,28 @@ def example_cell_complex_from_mesh():
     """
     # vertex group reference from mesh
     from abspy import VertexGroupReference
-    vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_mesh.ply', num_samples=10000)
+    vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_church.obj', num_samples=10000)
 
     # construct cell complex
     cell_complex = CellComplex(np.array(vertex_group_reference.planes), np.array(vertex_group_reference.bounds),
                                build_graph=True, quiet=False)
     cell_complex.construct()
-    cell_complex.visualise()
+
+    # cells inside reference mesh
+    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_church.obj')
+
+    # save cell complex CC file
+    cell_complex.save(dir_tests / 'test_output' / 'test_complex.cc')
+
+    #  Save cells to OBJ and PLM files
+    cell_complex.save_obj(dir_tests / 'test_output' / 'test_cells.obj', use_mtl=True, indices_cells=cells_in_mesh)
+    cell_complex.save_plm(dir_tests / 'test_output' / 'test_cells.plm')
+
+    # visualise the inside cells (only if pyglet installation is found and valid indices are provided)
+    if len(cells_in_mesh):
+        cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
 
 
 if __name__ == '__main__':
-    example_cell_complex_from_planes()
+    # example_cell_complex_from_planes()
     example_cell_complex_from_mesh()
