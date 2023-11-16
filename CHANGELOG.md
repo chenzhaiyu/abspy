@@ -6,9 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Add options to refit and skip global vertex group.
+- Options to refit and skip global vertex group.
+- A complex church test mesh
+- RTD configuration `.readthedocs.yaml`
+
 ### Removed
+- Obsolete PyPi `requirements.txt`
+- The `Why adaptive` section in README
+
 ### Changed
+- A few trivial optimizations
+- Rename test meshes
 
 ## [0.2.3] - 2023-05-03
 ### Added
@@ -19,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - License attribute in `setup.cfg`.
 - `AdjacencyGraph.to_uids()`.
 - option `location=random_t` and `location=boundary` in `CellComplex.cell_representatives`.
-- Add `environment.yml`.
+- Conda configuration file `environment.yml`.
 - `CellComplex.cells_boundary()`.
 
 ### Removed
