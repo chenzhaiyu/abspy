@@ -68,11 +68,11 @@ def example_cell_complex_from_mesh():
 
     # construct cell complex
     cell_complex = CellComplex(np.array(vertex_group_reference.planes), np.array(vertex_group_reference.bounds),
-                               build_graph=True, quiet=False)
+                               np.array(vertex_group_reference.obbs), build_graph=True, quiet=False)
     cell_complex.construct()
 
     # cells inside reference mesh
-    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_church.obj')
+    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_church.obj', engine='distance')
 
     # save cell complex CC file
     cell_complex.save(dir_tests / 'test_output' / 'test_complex.cc')
@@ -87,5 +87,6 @@ def example_cell_complex_from_mesh():
 
 
 if __name__ == '__main__':
-    # example_cell_complex_from_planes()
+    example_cell_complex_from_planes()
     example_cell_complex_from_mesh()
+

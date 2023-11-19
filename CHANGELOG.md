@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Options to refit and skip global vertex group.
 - A complex church test mesh
 - RTD configuration `.readthedocs.yaml`
+- OBB pre-intersection test to reduce runtime and maintain compactness
 
 ### Removed
 - Obsolete PyPi `requirements.txt`

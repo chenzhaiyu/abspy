@@ -45,7 +45,7 @@ Install the dependencies:
 conda install -c conda-forge networkx numpy tqdm scikit-learn matplotlib colorlog scipy trimesh rtree pyglet sage=10.0 
 ```
 
-Alternatively, you can use [mamba](https://github.com/mamba-org/mamba) for faster parsing and package installation:
+Alternatively, you can use [mamba](https://github.com/mamba-org/mamba) for faster package parsing installation:
 
 ```bash
 conda install mamba -c conda-forge
@@ -58,7 +58,7 @@ You might want to install [pyembree](https://github.com/trimesh/embreex) for bet
 pip install embreex
 ```
 
-Preferably, ***abspy*** can be found and easily installed via [PyPI](https://pypi.org/project/abspy/):
+Preferably, *abspy* can be found and easily installed via [PyPI](https://pypi.org/project/abspy/):
 
 ```bash
 pip install abspy
@@ -139,7 +139,7 @@ With a constructed cell complex, the surface can be addressed by graph cut &mdas
 
 ## Citation
 
-If you use ***abspy*** in a scientific work, please consider citing the paper:
+If you use *abspy* in a scientific work, please consider citing the paper:
 
 ```bibtex
 @article{chen2022points2poly,
