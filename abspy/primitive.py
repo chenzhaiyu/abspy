@@ -143,7 +143,7 @@ class VertexGroup:
         """
         logger.info('processing {}'.format(self.filepath))
         self.points = self.get_points()
-        self.planes, self.bounds, self.points_grouped, self.points_ungrouped, self.obbs= self.get_primitives()
+        self.planes, self.bounds, self.points_grouped, self.points_ungrouped, self.obbs = self.get_primitives()
         self.processed = True
 
     def get_points(self, row=1):
@@ -204,10 +204,11 @@ class VertexGroup:
             grouped_indices.update(point_indices)
             points = self.points[point_indices]
             if self.refit:
-                param,obb = self.fit_plane(points, mode='PCA')
+                param, obb = self.fit_plane(points, mode='PCA')
             else:
                 param = np.array([float(j) for j in parameters[i][18:-1].split()])
-                obb = np.array([[-np.inf, -np.inf, -np.inf ],[-np.inf, np.inf, -np.inf],[np.inf, np.inf, -np.inf],[np.inf, -np.inf, -np.inf]]) 
+                obb = np.array([[-np.inf, -np.inf, -np.inf], [-np.inf, np.inf, -np.inf],
+                                [np.inf, np.inf, -np.inf], [np.inf, -np.inf, -np.inf]])
             if param is None or len(param) != 4:
                 continue
             params.append(param)
@@ -220,7 +221,8 @@ class VertexGroup:
             groups.append(points)
         ungrouped_indices = set(range(len(self.points))).difference(grouped_indices)
         ungrouped_points = self.points[list(ungrouped_indices)]  # points that belong to no groups
-        return np.array(params), np.array(bounds), np.array(groups, dtype=object), np.array(ungrouped_points), np.array(obbs)
+        return (np.array(params), np.array(bounds), np.array(groups, dtype=object),
+                np.array(ungrouped_points), np.array(obbs))
 
     @staticmethod
     def _points_bound(points):
@@ -301,7 +303,7 @@ class VertexGroup:
         self.points = (self.points - offset) / (bounds.max() * scale) + centroid
 
         # update planes and bounds as point coordinates has changed
-        self.planes, self.bounds, self.points_grouped, _ , self.obbs = self.get_primitives()
+        self.planes, self.bounds, self.points_grouped, _, self.obbs = self.get_primitives()
 
         # safely sample points after planes are extracted
         if num:
@@ -329,14 +331,17 @@ class VertexGroup:
             Oriented bounding box of the plane
         """
         assert mode == 'PCA' or mode == 'LSA'
+
         if len(points) < 3:
             logger.warning('plane fitting skipped given #points={}'.format(len(points)))
             return None
+
         if mode == 'LSA':
             # AX = B
             logger.warning('LSA introduces distortions when the plane crosses the origin')
             param = np.linalg.lstsq(points, np.expand_dims(np.ones(len(points)), 1))
             param = np.append(param[0], -1)
+
         else:
             # PCA followed by shift
             pca = PCA(n_components=3)
@@ -345,7 +350,8 @@ class VertexGroup:
             points_trans = pca.transform(points)
             point_min = np.amin(points_trans, axis=0)
             point_max = np.amax(points_trans, axis=0)
-            obb = np.array([[point_min[0],point_min[1],0],[point_min[0],point_max[1],0],[point_max[0],point_max[1],0],[point_max[0],point_min[1],0]])
+            obb = np.array([[point_min[0], point_min[1], 0], [point_min[0], point_max[1], 0],
+                            [point_max[0], point_max[1], 0], [point_max[0], point_min[1], 0]])
             obb = pca.inverse_transform(obb)
                 
             logger.debug('explained_variance_ratio: {}'.format(pca.explained_variance_ratio_))
@@ -359,7 +365,7 @@ class VertexGroup:
             d = -centroid.dot(normal)
             param = np.append(normal, d)
 
-        return param,obb
+        return param, obb
 
     def append_planes(self, additional_planes, additional_points=None):
         """
@@ -651,7 +657,7 @@ class VertexGroupReference:
             points = np.concatenate(points)
 
             # calculate parameters
-            plane,obb = VertexGroup.fit_plane(vertices)
+            plane, obb = VertexGroup.fit_plane(vertices)
             self.planes.append(plane)
             self.bounds.append(self._points_bound(vertices))
             self.obbs.append(obb)
@@ -677,7 +683,7 @@ class VertexGroupReference:
             points = np.concatenate(points)
 
             # calculate parameters
-            plane,obb = VertexGroup.fit_plane(vertices)
+            plane, obb = VertexGroup.fit_plane(vertices)
             self.planes.append(plane)
             self.obbs.append(obb)
             self.bounds.append(self._points_bound(vertices))
