@@ -22,39 +22,41 @@
 
 ## Installation
 
-### Install requirements
+### All-in-one installation
 
-All dependencies except for [SageMath](https://www.sagemath.org/) can be easily installed with [PyPI](https://pypi.org/):
+Create a conda environment with the latest *abspy* release and all its dependencies installed:
 
 ```bash
 git clone https://github.com/chenzhaiyu/abspy && cd abspy
-pip install -r requirements.txt
+conda env create -f environment.yml && conda activate abspy
 ```
 
-Optionally, install [pyglet](https://github.com/pyglet/pyglet) and [pyembree](https://github.com/adam-grant-hendry/pyembree) for better visualisation and ray-tracing, respectively:
+### Manual installation
+
+Create a conda environment and enter it: 
 
 ```bash
-pip install pyglet pyembree
+conda create --name abspy python=3.10 && conda activate abspy
 ```
 
-### Install SageMath
-
-For Linux and macOS users, the easiest is to install from [conda-forge](https://conda-forge.org/):
+Install the dependencies:
 
 ```bash
-conda install sage=9.4 -c conda-forge
+conda install -c conda-forge networkx numpy tqdm scikit-learn matplotlib colorlog scipy trimesh rtree pyglet sage=10.0 
 ```
 
 Alternatively, you can use [mamba](https://github.com/mamba-org/mamba) for faster parsing and package installation:
 
 ```bash
 conda install mamba -c conda-forge
-mamba install sage=9.4 -c conda-forge
+mamba install -c conda-forge networkx numpy tqdm scikit-learn matplotlib colorlog scipy trimesh rtree pyglet sage=10.0 
 ```
 
-For Windows users, you may have to build SageMath from source or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html).
+You might want to install [pyembree](https://github.com/trimesh/embreex) for better ray-tracing:
 
-### Install abspy
+```bash
+pip install embreex
+```
 
 Preferably, ***abspy*** can be found and easily installed via [PyPI](https://pypi.org/project/abspy/):
 
@@ -62,7 +64,7 @@ Preferably, ***abspy*** can be found and easily installed via [PyPI](https://pyp
 pip install abspy
 ```
 
-Otherwise, you can install the pulled version locally:
+Otherwise, you can install the latest version locally:
 
 ```
 pip install .
@@ -70,7 +72,7 @@ pip install .
 
 ## Quick start
 
-Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph, and extracting the outer surface of the object.
+Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph, and extracting the object's outer surface.
 
 ```python
 import numpy as np
@@ -115,27 +117,21 @@ _, _ = adjacency_graph.cut()
 adjacency_graph.save_surface_obj('surface.obj', engine='rendering')
 ```
 
-Usage can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
+Usage of *abspy* can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
-## Misc
 
-* **Why adaptive?**
+## FAQ
 
-The adaptive strategy significantly unburdens computations for cell complex creation, compared to the exhaustive counterpart, yet retaining meaningful space partitions.
+* **How can I install *abspy* on Windows?**
 
-![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/adaptive.png)
+For Windows users, you may need to build [SageMath from source](https://doc.sagemath.org/html/en/installation/source.html) or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html). Otherwise, virtualization with [docker](https://www.docker.com/) may come to the rescue.
 
-Run the benchmark comparing the adaptive, the exhaustive, and SageMath's [hyperplane arrangements](https://doc.sagemath.org/html/en/reference/discrete_geometry/sage/geometry/hyperplane_arrangement/arrangement.html):
+* **How can I use *abspy* for surface reconstruction?**
 
-```bash
-python misc/benchmark.py
-```
-
-* **How can *abspy* be used for surface reconstruction?**
-
-With a constructed cell complex, the surface can be addressed by graph cut &mdash; in between adjacent cells where one being *inside* and the other being *outside* &mdash; exactly where the cut is performed. For more information, refer to ***[Points2Poly](https://github.com/chenzhaiyu/points2poly)*** which wraps ***abspy*** for building surface reconstruction.
+With a constructed cell complex, the surface can be addressed by graph cut &mdash; in between adjacent cells where one being *inside* and the other being *outside* &mdash; exactly where the cut is performed. For more information, please refer to ***[Points2Poly](https://github.com/chenzhaiyu/points2poly)*** which wraps ***abspy*** for building surface reconstruction.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
+
 
 ## License
 
