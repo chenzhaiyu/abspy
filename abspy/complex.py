@@ -787,7 +787,7 @@ class CellComplex:
                 indices.append(index)
         return indices
 
-    def cells_in_mesh(self, filepath_mesh, engine='ray'):
+    def cells_in_mesh(self, filepath_mesh, engine='distance'):
         """
         Return indices of cells that are inside a reference mesh.
 
@@ -796,7 +796,8 @@ class CellComplex:
         filepath_mesh: str or Path
             Filepath to reference mesh
         engine: str
-            Engine to compute predicate, can be 'ray' for ray intersection, or 'distance' for signed distance
+            Engine to compute predicate, can be 'embree' for pyembree (up to x50 faster but not stable),
+            'ray_triangle' for a slower ray tracer, or 'distance' for signed distance
 
         Returns
         -------
@@ -806,15 +807,21 @@ class CellComplex:
         mesh = trimesh.load_mesh(filepath_mesh)
         centers = self.cell_representatives(location='center')
 
-        if engine == 'ray':
-            # raytracing not stable for non-watertight mesh (incl. with inner structure)
-            try:
-                # https://trimsh.org/trimesh.ray.ray_pyembree.html
-                contains = trimesh.ray.ray_pyembree.RayMeshIntersector(mesh).contains_points(centers)
-            except ModuleNotFoundError:
-                # https://trimsh.org/trimesh.ray.ray_triangle.html
-                logger.warning('pyembree installation not found; fall back to ray_triangle')
-                contains = mesh.contains(centers)
+        if engine == 'embree':
+            # not stable, and no exact returns, use with caution
+            # https://trimsh.org/trimesh.ray.ray_pyembree.html
+            # https://github.com/mikedh/trimesh/issues/242
+            # https://github.com/mikedh/trimesh/issues/306
+            logger.warning('ray tracing unstable; use with caution')
+            contains = trimesh.ray.ray_pyembree.RayMeshIntersector(mesh).contains_points(centers)
+            return contains.nonzero()[0]
+        
+        elif engine == 'ray_triangle':
+            # not stable, use with caution
+            # https://trimsh.org/trimesh.ray.ray_triangle.html
+            # https://github.com/mikedh/trimesh/issues/242
+            logger.warning('ray tracing unstable; use with caution')
+            contains = mesh.contains(centers)
             return contains.nonzero()[0]
 
         elif engine == 'distance':
@@ -822,7 +829,7 @@ class CellComplex:
             distances = trimesh.proximity.signed_distance(mesh, centers)
             return (distances >= 0).nonzero()[0]
         else:
-            raise ValueError("expected 'ray' or 'distance' as engine, got {}".format(engine))
+            raise ValueError("expected 'embree', 'ray_triangle' or 'distance' as engine, got {}".format(engine))
 
     def print_info(self):
         """
