@@ -322,7 +322,7 @@ class CellComplex:
         extent = bound[1] - bound[0]
         return [bound[0] - extent * padding, bound[1] + extent * padding]
 
-    def _intersect_bound_plane(self, bound, plane, exhaustive=False, epsilon=10e-5):
+    def _intersect_bound_plane(self, bound, plane, exhaustive=False, epsilon=10e-8):
         """
         Pre-intersection test between query primitive and existing cells,
         based on AABB and plane parameters.
@@ -376,7 +376,7 @@ class CellComplex:
 
         return intersection_bound[intersection_plane]
 
-    def _intersect_bound_plane2(self, plane, obb, points, indices_cells, exhaustive=False, epsilon=10e-5):
+    def _intersect_bound_plane2(self, plane, obb, points, indices_cells, exhaustive=False, epsilon=10e-8):
         """
         Further-intersection test between query primitive and existing cells,
         based on AABB and plane parameters.
@@ -410,8 +410,9 @@ class CellComplex:
         intersection_bound = indices_cells
 
         vertices_query = obb # 4*3
-        norm_query = plane[:3]/np.linalg.norm(plane[:3]) # 3,
+        norm_query = self._normalize(plane[:3]) # 3,
         edges_query = np.array([obb[0,:]-obb[1,:],obb[1,:]-obb[2,:]]) # 2*3
+        edges_query = self._normalize(edges_query) # 2*3
 
         vertices_targets = [cell.vertices_list() for i,cell in enumerate(self.cells) if i in intersection_bound]
         norms_targets = [self._cell_norm(vertices) for vertices in vertices_targets] 
@@ -447,7 +448,7 @@ class CellComplex:
 
         # 3. plane normal cross plane_obb edges
         axis = np.cross(norm_query,edges_query) # 2 * 3
-        axis = axis / np.linalg.norm(axis, axis=1, keepdims=True)
+        axis = self._normalize(axis) # 2 * 3
         projection_query =  np.einsum('ni,mi->nm', axis , vertices_query) # 2 * 4
         min_projection_query = np.min(projection_query, axis=1) # 2 *3
         max_projection_query = np.max(projection_query, axis=1) #2*3
@@ -460,7 +461,7 @@ class CellComplex:
         # 4. cell_obb edges cross plane_obb edges
         axis = np.cross(edges_query[np.newaxis,np.newaxis,:,:],edges_targets[:,:,np.newaxis,:]) # N * 3 * 2 * 3
         axis = axis.reshape(-1,6,3) # N * 6 * 3
-        axis = axis / np.linalg.norm(axis, axis=2, keepdims=True)
+        axis = self._normalize(axis) # N * 6 * 3
         projection_query = np.einsum('nmi,bi->nmb', axis , vertices_query) # N * 6 * 4
         min_projection_query = np.min(projection_query, axis=2) # N * 6
         max_projection_query = np.max(projection_query, axis=2) # N * 6
@@ -481,6 +482,25 @@ class CellComplex:
             intersection_plane = np.append(intersection_plane,0)
 
         return intersection_plane
+    
+    @staticmethod
+    def _normalize(axis):
+        """
+        Normalize axis.
+
+        Parameters
+        ----------
+        axis: (n_0, n_1, ..., n_k, 3) float
+        
+        Returns
+        -------
+        as_float: (n_0, n_1, ..., n_k, 3) float
+            Normalized axis
+        """
+        eps = 1e-12
+        enom = np.linalg.norm(axis, axis=-1, keepdims=True)
+        enom_clipped = np.clip(enom, eps, None)
+        return axis /enom_clipped
    
     @staticmethod
     def _cell_norm(vertices):
@@ -599,8 +619,8 @@ class CellComplex:
             # indices of existing cells with potential intersections
             indices_cells = self._intersect_bound_plane(self.bounds[i], self.planes[i], exhaustive)
 
-            # if self.obbs is not None and self.points is not None:
-                # indices_cells = self._intersect_bound_plane2(self.planes[i], self.obbs[i], self.points[i], indices_cells, exhaustive)
+            if self.obbs is not None and self.points is not None:
+                indices_cells = self._intersect_bound_plane2(self.planes[i], self.obbs[i], self.points[i], indices_cells, exhaustive)
             
             assert len(indices_cells), 'intersection failed! check the initial bound'
 
