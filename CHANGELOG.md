@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A complex church test mesh
 - RTD configuration `.readthedocs.yaml`
 - OBB pre-intersection test to reduce runtime and maintain compactness
+- An example for convex decomposition from mesh in README
 
 ### Removed
 - Obsolete PyPi `requirements.txt`
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - A few trivial optimizations
 - Rename test meshes
+- Upgrade `sage=10.0`
 
 ## [0.2.3] - 2023-05-03
 ### Added

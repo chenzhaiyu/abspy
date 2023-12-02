@@ -5,7 +5,7 @@
 
 ## Introduction
 
-***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with pre-detected planar primitives in a point cloud, where an adjacency graph is dynamically obtained. Though the tool is designed primarily to support compact surface reconstruction, it can be extrapolated to other applications as well.
+***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with planar primitives, where an adjacency graph is dynamically obtained. The tool is designed primarily to support compact surface reconstruction and other applications as well.
 
 <div align="center" width="480">
   <img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/animation.gif"><br>
@@ -13,12 +13,12 @@
 
 ## Key features
 
-* Manipulation of planar primitives detected from point clouds
+* Manipulation of planar primitives from point cloud or reference mesh
 * Linear cell complex creation with adaptive binary space partitioning (a-BSP)
-* Dynamic BSP-tree ([NetworkX](https://networkx.org/) graph) updated locally upon insertion of primitives
-* Support of polygonal surface reconstruction from graph cuts
-* Compatible data structure with [Easy3D](https://github.com/LiangliangNan/Easy3D) on point clouds, primitives, cell complexes and surfaces
-* Robust Boolean spatial operations underpinned by the rational ring from [SageMath](https://www.sagemath.org/)'s exact kernel
+* Dynamic BSP-tree ([NetworkX](https://networkx.org/) graph) updated locally upon primitive insertion
+* Support of polygonal surface reconstruction with graph cut
+* Compatible data structure with [Easy3D](https://github.com/LiangliangNan/Easy3D) on point cloud, primitive, mesh and cell complex
+* Robust spatial operations underpinned by the rational ring from [SageMath](https://www.sagemath.org/)'s exact kernel
 
 ## Installation
 
@@ -33,7 +33,7 @@ conda env create -f environment.yml && conda activate abspy
 
 ### Manual installation
 
-Create a conda environment and enter it: 
+Still easy! Create a conda environment and enter it: 
 
 ```bash
 conda create --name abspy python=3.10 && conda activate abspy
@@ -52,13 +52,7 @@ conda install mamba -c conda-forge
 mamba install -c conda-forge networkx numpy tqdm scikit-learn matplotlib colorlog scipy trimesh rtree pyglet sage=10.0 
 ```
 
-You might want to install [pyembree](https://github.com/trimesh/embreex) for better ray-tracing:
-
-```bash
-pip install embreex
-```
-
-Preferably, *abspy* can be found and easily installed via [PyPI](https://pypi.org/project/abspy/):
+Preferably, the latest *abspy* release can be found and installed via [PyPI](https://pypi.org/project/abspy/):
 
 ```bash
 pip install abspy
@@ -66,29 +60,31 @@ pip install abspy
 
 Otherwise, you can install the latest version locally:
 
-```
+```bash
+git clone https://github.com/chenzhaiyu/abspy && cd abspy
 pip install .
 ```
 
 ## Quick start
 
-Here is an example of loading a point cloud in `VertexGroup` (`.vg`), partitioning the ambient space into candidate convexes, creating the adjacency graph, and extracting the object's outer surface.
+### Example 1 - Reconstruction from point cloud
+
+The example loads a point cloud to `VertexGroup` (`.vg`), partitions ambient space into a cell complex, creats the adjacency graph, and extracts the object's outer surface.
 
 ```python
-import numpy as np
 from abspy import VertexGroup, AdjacencyGraph, CellComplex
 
 # load a point cloud in VertexGroup 
 vertex_group = VertexGroup(filepath='points.vg')
 
-# normalise the point cloud
+# normalise point cloud
 vertex_group.normalise_to_centroid_and_scale()
 
-# additional planes to append (e.g., the bounding planes)
+# additional planes to append (e.g., bounding planes)
 additional_planes = [[0, 0, 1, -1], [1, 2, 3, -4]]
 
-# initialise CellComplex from planar primitives
-cell_complex = CellComplex(vertex_group.planes, vertex_group.bounds, vertex_group.points_grouped, build_graph=True, additional_planes=additional_planes)
+# initialise cell complex
+cell_complex = CellComplex(vertex_group.planes, vertex_group.bounds, vertex_group.obbs, vertex_group.points_grouped, build_graph=True, additional_planes=additional_planes)
 
 # refine planar primitives
 cell_complex.refine_planes()
@@ -96,28 +92,52 @@ cell_complex.refine_planes()
 # prioritise certain planes (e.g., vertical ones)
 cell_complex.prioritise_planes(prioritise_verticals=True)
 
-# construct CellComplex 
+# construct cell complex 
 cell_complex.construct()
 
-# print info on the cell complex
+# print info about cell complex
 cell_complex.print_info()
 
-# build adjacency graph of the cell complex
+# build adjacency graph from cell complex
 adjacency_graph = AdjacencyGraph(cell_complex.graph)
 
-# assign weights (e.g., SDF values provided by neural network prediction) to graph 
-weights_dict = adjacency_graph.to_dict(...)
+# assign weights (e.g., occupancy by neural network prediction) to graph 
 adjacency_graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap', factor=0.001, cache_interfaces=True)
-adjacency_graph.assign_weights_to_st_links(weights_dict)
+adjacency_graph.assign_weights_to_st_links(...)
 
-# perform graph-cut to extract surface
+# perform graph cut to extract surface
 _, _ = adjacency_graph.cut()
 
 # save surface model to an OBJ file
 adjacency_graph.save_surface_obj('surface.obj', engine='rendering')
 ```
 
-Usage of *abspy* can be found at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
+### Example 2 - Convex decomposition from mesh
+
+The example loads a mesh to `VertexGroupReference`, partitions ambient space into a cell complex, identify cells inside reference mesh, and visualize the cells.
+
+```python
+from abspy import VertexGroupReference
+vertex_group_reference = VertexGroupReference(filepath='mesh.obj')
+
+# initialise cell complex
+cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference.bounds, vertex_group_reference.obbs, build_graph=True)
+
+# construct cell complex 
+cell_complex.construct()
+
+# cells inside reference mesh
+cells_in_mesh = cell_complex.cells_in_mesh('mesh.obj', engine='distance')
+
+# save cell complex file
+cell_complex.save('complex.cc')
+
+# visualise the inside cells
+if len(cells_in_mesh):
+    cell_complex.visualise(indices_cells=cells_in_mesh)
+```
+
+Please find the usage of *abspy* at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
 
 ## FAQ
@@ -128,7 +148,7 @@ For Windows users, you may need to build [SageMath from source](https://doc.sage
 
 * **How can I use *abspy* for surface reconstruction?**
 
-With a constructed cell complex, the surface can be addressed by graph cut &mdash; in between adjacent cells where one being *inside* and the other being *outside* &mdash; exactly where the cut is performed. For more information, please refer to ***[Points2Poly](https://github.com/chenzhaiyu/points2poly)*** which wraps ***abspy*** for building surface reconstruction.
+As demonstrated in `Example 1`, the surface can be addressed by graph cut &mdash; in between adjacent cells where one being *inside* and the other being *outside* &mdash; exactly where the cut is performed. For more information, please refer to ***[Points2Poly](https://github.com/chenzhaiyu/points2poly)*** which wraps ***abspy*** for building surface reconstruction.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
 
