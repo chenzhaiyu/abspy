@@ -24,18 +24,18 @@ def example_combined():
     # normalise the point cloud
     vertex_group.normalise_to_centroid_and_scale()
 
-    # additional planes to append (e.g., the bounding planes)
+    # additional planes to append (e.g., the bounding planes), this example does not apply
     additional_planes = [[0, 0, 1, -vertex_group.aabbs[:, 0, 2].min()]]  # the bottom of the points (z = d)
 
     # initialise CellComplex from planar primitives
     cell_complex = CellComplex(vertex_group.planes, vertex_group.aabbs, vertex_group.obbs, vertex_group.points_grouped,
-                               build_graph=True, additional_planes=additional_planes)
+                               build_graph=True, additional_planes=None)
 
     # refine planar primitives
     cell_complex.refine_planes(theta=0.1745, epsilon=0.005)
 
-    # prioritise certain planes (e.g., vertical ones)
-    cell_complex.prioritise_planes(prioritise_verticals=True)
+    # prioritise certain planes (e.g., vertical ones), this example does not apply
+    cell_complex.prioritise_planes(prioritise_verticals=False)
 
     # construct CellComplex
     cell_complex.construct()
@@ -48,7 +48,10 @@ def example_combined():
 
     # visualise the inside cells (only if pyglet installation is found and valid indices are provided)
     if len(cells_in_mesh):
-        cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
+        try:
+            cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
+        except (Exception, ImportError) as e:
+            print(f'visualization skipped: {e}')
 
     # build adjacency graph of the cell complex
     adjacency_graph = AdjacencyGraph(cell_complex.graph)

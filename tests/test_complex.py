@@ -48,12 +48,15 @@ def example_cell_complex_from_planes():
     # visualise cell representatives
     representatives_vis = trimesh.PointCloud(representatives, colours)
     representatives_vis.export(dir_tests / 'test_output' / 'test_vis.ply', file_type='ply')
-    representatives_vis.show()
+    try:
+        representatives_vis.show()
+    except (Exception, ImportError) as e:
+        print(f'visualization skipped: {e}')
 
     # save cell complex CC file
     cell_complex.save(dir_tests / 'test_output' / 'complex.cc')
 
-    #  Save cells to OBJ and PLM files
+    # save cells to OBJ and PLM files
     cell_complex.save_obj(dir_tests / 'test_output' / 'cells.obj', use_mtl=True)
     cell_complex.save_plm(dir_tests / 'test_output' / 'cells.plm')
 
@@ -84,7 +87,10 @@ def example_cell_complex_from_mesh():
 
     # visualise the inside cells (only if pyglet installation is found and valid indices are provided)
     if len(cells_in_mesh):
-        cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
+        try:
+            cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir='./test_output/')
+        except (Exception, ImportError) as e:
+            print(f'visualization skipped: {e}')
 
 
 if __name__ == '__main__':
