@@ -80,11 +80,11 @@ vertex_group = VertexGroup(filepath='points.vg')
 # normalise point cloud
 vertex_group.normalise_to_centroid_and_scale()
 
-# additional planes to append (e.g., bounding planes)
-additional_planes = [[0, 0, 1, -1], [1, 2, 3, -4]]
+# additional planes to append (e.g., a bounding plane)
+additional_planes = [[0, 0, 1, -vertex_group.aabbs[:, 0, 2].min()]]
 
 # initialise cell complex
-cell_complex = CellComplex(vertex_group.planes, vertex_group.bounds, vertex_group.obbs, vertex_group.points_grouped, build_graph=True, additional_planes=additional_planes)
+cell_complex = CellComplex(vertex_group.planes, vertex_group.aabbs, vertex_group.obbs, vertex_group.points_grouped, build_graph=True, additional_planes=additional_planes)
 
 # refine planar primitives
 cell_complex.refine_planes()
@@ -121,7 +121,7 @@ from abspy import VertexGroupReference
 vertex_group_reference = VertexGroupReference(filepath='mesh.obj')
 
 # initialise cell complex
-cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference.bounds, vertex_group_reference.obbs, build_graph=True)
+cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference.aabbs, vertex_group_reference.obbs, build_graph=True)
 
 # construct cell complex 
 cell_complex.construct()

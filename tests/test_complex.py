@@ -67,9 +67,10 @@ def example_cell_complex_from_mesh():
     vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_church.obj', num_samples=10000)
 
     # construct cell complex
-    cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference.bounds,
+    cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference.aabbs,
                                vertex_group_reference.obbs, build_graph=True, quiet=False)
     cell_complex.construct()
+    cell_complex.print_info()
 
     # cells inside reference mesh
     cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_church.obj', engine='distance')

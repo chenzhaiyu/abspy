@@ -40,7 +40,7 @@ class CellComplex:
     Class of cell complex from planar primitive arrangement.
     """
 
-    def __init__(self, planes, bounds, obbs=None, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
+    def __init__(self, planes, aabbs, obbs=None, points=None, initial_bound=None, initial_padding=0.1, additional_planes=None,
                  build_graph=False, quiet=False):
         """
         Init CellComplex.
@@ -50,7 +50,7 @@ class CellComplex:
         ----------
         planes: (n, 4) float
             Plana parameters
-        bounds: (n, 2, 3) float
+        aabbs: (n, 2, 3) float
             Corresponding bounding box bounds of the planar primitives
         obbs: (n, 4, 3) float
             Corresponding oriented bounds of the planar primitives
@@ -70,7 +70,7 @@ class CellComplex:
         if self.quiet:
             logger.disabled = True
 
-        self.bounds = bounds  # numpy.array over RDF
+        self.aabbs = aabbs  # numpy.array over RDF
         self.obbs = obbs      # numpy.array over RDF
         self.planes = planes  # numpy.array over RDF
         self.points = points
@@ -78,7 +78,7 @@ class CellComplex:
         self.additional_planes = additional_planes
 
         self.initial_bound = initial_bound if initial_bound else self._pad_bound(
-            [np.amin(bounds[:, 0, :], axis=0), np.amax(bounds[:, 1, :], axis=0)],
+            [np.amin(aabbs[:, 0, :], axis=0), np.amax(aabbs[:, 1, :], axis=0)],
             padding=initial_padding)
         self.cells = [self._construct_initial_cell()]  # list of QQ
         self.cells_bounds = [self.cells[0].bounding_box()]  # list of QQ
@@ -131,9 +131,9 @@ class CellComplex:
 
         # shallow copy of the primitives
         planes = list(copy(self.planes))
-        bounds = list(copy(self.bounds))
-        points = list(copy(self.points))
+        aabbs = list(copy(self.aabbs))
         obbs = list(copy(self.obbs))
+        points = list(copy(self.points))
 
         # pre-compute cosine of theta
         theta_cos = np.cos(theta)
@@ -153,7 +153,7 @@ class CellComplex:
         to_merge = set()
 
         while priority_queue:
-            # the pair with smallest angle
+            # pair with the smallest angle
             pair = heapq.heappop(priority_queue)
 
             if -pair[0] > theta_cos:  # negate back to use max-heap
@@ -167,8 +167,8 @@ class CellComplex:
                     # merge the two planes
                     points_merged = np.concatenate([points[pair[1]], points[pair[2]]])
                     planes_merged, obbs_merged = VertexGroup.fit_plane(points_merged)
-                    bounds_merged = [np.min([bounds[pair[1]][0], bounds[pair[2]][0]], axis=0).tolist(),
-                                     np.max([bounds[pair[1]][1], bounds[pair[2]][1]], axis=0).tolist()]
+                    aabbs_merged = [np.min([aabbs[pair[1]][0], aabbs[pair[2]][0]], axis=0).tolist(),
+                                    np.max([aabbs[pair[1]][1], aabbs[pair[2]][1]], axis=0).tolist()]
 
                     # update to_merge
                     to_merge.update({pair[1]})
@@ -180,10 +180,10 @@ class CellComplex:
                             angle_cos = np.abs(np.dot(planes_merged[:3], p[:3]))
                             heapq.heappush(priority_queue, [-angle_cos, i, len(planes)])  # placeholder
 
-                    # update the actual data with the merged ones
+                    # update the actual data with merged ones
                     points.append(points_merged)
-                    bounds.append(bounds_merged)
                     planes.append(planes_merged)
+                    aabbs.append(aabbs_merged)
                     obbs.append(obbs_merged)
 
             else:
@@ -192,17 +192,17 @@ class CellComplex:
 
         # delete the merged pairs
         for i in sorted(to_merge, reverse=True):
-            del points[i]
-            del bounds[i]
             del planes[i]
+            del aabbs[i]
             del obbs[i]
+            del points[i]
 
         logger.info('{} pairs of planes merged'.format(len(to_merge)))
 
         self.planes = np.array(planes)
-        self.bounds = np.array(bounds)
-        self.points = np.array(points, dtype=object)
+        self.aabbs = np.array(aabbs)
         self.obbs = np.array(obbs)
+        self.points = np.array(points, dtype=object)
 
     def prioritise_planes(self, prioritise_verticals=True):
         """
@@ -233,7 +233,7 @@ class CellComplex:
 
         # reorder both the planes and their bounds
         self.planes = self.planes[indices_priority]
-        self.bounds = self.bounds[indices_priority]
+        self.aabbs = self.aabbs[indices_priority]
 
         # reorder obbs and points if not None
         if self.obbs is not None:
@@ -241,11 +241,11 @@ class CellComplex:
         if self.points is not None:
             self.points = self.points[indices_priority]
 
-        # append additional planes with highest priority
+        # append additional planes with the highest priority
         if self.additional_planes:
             self.planes = np.concatenate([self.additional_planes, self.planes], axis=0)
             additional_bounds = [[[-np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf]]] * len(self.additional_planes)
-            self.bounds = np.concatenate([additional_bounds, self.bounds], axis=0)  # never miss an intersection
+            self.aabbs = np.concatenate([additional_bounds, self.aabbs], axis=0)  # never miss an intersection
             if self.obbs is not None:
                 additional_obbs = [[[-np.inf, -np.inf, -np.inf], [-np.inf, np.inf, -np.inf], [np.inf, np.inf, -np.inf],
                                     [np.inf, -np.inf, -np.inf]]] * len(self.additional_planes)
@@ -255,7 +255,8 @@ class CellComplex:
                 self.points = np.concatenate([additional_points, self.points], axis=0)
 
         logger.debug('ordered planes: {}'.format(self.planes))
-        logger.debug('ordered bounds: {}'.format(self.bounds))
+        logger.debug('ordered aabbs: {}'.format(self.aabbs))
+        logger.debug('ordered obbs: {}'.format(self.obbs))
 
     def _vertical_planes(self, slope_threshold=0.9, epsilon=10e-5):
         """
@@ -291,10 +292,10 @@ class CellComplex:
             Indices by which the planar primitives are sorted based on their bounding box volume
         """
         if mode == 'volume':
-            volume = np.prod(self.bounds[:, 1, :] - self.bounds[:, 0, :], axis=1)
+            volume = np.prod(self.aabbs[:, 1, :] - self.aabbs[:, 0, :], axis=1)
             return np.argsort(volume)[::-1]
         elif mode == 'norm':
-            sizes = np.linalg.norm(self.bounds[:, 1, :] - self.bounds[:, 0, :], ord=2, axis=1)
+            sizes = np.linalg.norm(self.aabbs[:, 1, :] - self.aabbs[:, 0, :], ord=2, axis=1)
             return np.argsort(sizes)[::-1]
         elif mode == 'area':
             # project the points supporting each plane onto the plane
@@ -610,11 +611,11 @@ class CellComplex:
         if num_workers > 0:
             pool = multiprocessing.Pool(processes=num_workers)
 
-        pbar = range(len(self.bounds)) if self.quiet else trange(len(self.bounds))
+        pbar = range(len(self.aabbs)) if self.quiet else trange(len(self.aabbs))
         for i in pbar:  # kinetic for each primitive
             # bounding box intersection test
             # indices of existing cells with potential intersections
-            indices_cells = self._intersect_bound_plane(self.bounds[i], self.planes[i], exhaustive)
+            indices_cells = self._intersect_bound_plane(self.aabbs[i], self.planes[i], exhaustive)
 
             if self.obbs is not None:
                 indices_cells = self._intersect_obb(self.planes[i], self.obbs[i], indices_cells, exhaustive)

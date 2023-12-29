@@ -25,10 +25,10 @@ def example_combined():
     vertex_group.normalise_to_centroid_and_scale()
 
     # additional planes to append (e.g., the bounding planes)
-    additional_planes = [[0, 0, 1, -vertex_group.bounds[:, 0, 2].min()]]  # the bottom of the points (z = d)
+    additional_planes = [[0, 0, 1, -vertex_group.aabbs[:, 0, 2].min()]]  # the bottom of the points (z = d)
 
     # initialise CellComplex from planar primitives
-    cell_complex = CellComplex(vertex_group.planes, vertex_group.bounds, vertex_group.obbs, vertex_group.points_grouped,
+    cell_complex = CellComplex(vertex_group.planes, vertex_group.aabbs, vertex_group.obbs, vertex_group.points_grouped,
                                build_graph=True, additional_planes=additional_planes)
 
     # refine planar primitives

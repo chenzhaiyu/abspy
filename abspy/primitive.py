@@ -56,7 +56,7 @@ class VertexGroup:
         self.processed = False
         self.points = None
         self.planes = None
-        self.bounds = None
+        self.aabbs = None
         self.obbs = None
         self.points_grouped = None
         self.points_ungrouped = None
@@ -143,7 +143,7 @@ class VertexGroup:
         """
         logger.info('processing {}'.format(self.filepath))
         self.points = self.get_points()
-        self.planes, self.bounds, self.points_grouped, self.points_ungrouped, self.obbs = self.get_primitives()
+        self.planes, self.aabbs, self.obbs, self.points_grouped, self.points_ungrouped = self.get_primitives()
         self.processed = True
 
     def get_points(self, row=1):
@@ -171,14 +171,14 @@ class VertexGroup:
         ----------
         params: (n, 4) float
             Plane parameters
-        bounds: (n, 2, 3) float
-            Bounding box of the primitives
+        aabbs: (n, 2, 3) float
+            Axis-aligned bounding boxes of the primitives
+        obbs: (n, 4, 3) float
+            Oriented bounding boxes of the primitives
         groups: (n, m, 3) float
             Groups of points
         ungrouped_points: (u, 3) float
             Points that belong to no group
-        obbs: (n, 4, 3) float
-            Oriented bounding box of the primitives
         """
         is_primitive = [line.startswith('group_num_point') for line in self.vgroup_ascii]
         is_parameter = [line.startswith('group_parameters') for line in self.vgroup_ascii]
@@ -195,34 +195,45 @@ class VertexGroup:
             raise ValueError('group attributes mismatch')
 
         params = []
-        bounds = []
-        groups = []
+        aabbs = []
         obbs = []
+        groups = []
         grouped_indices = set()  # indices of points being grouped
         for i, p in enumerate(primitives):
             point_indices = np.fromstring(p, sep=' ', dtype=np.int64)
             grouped_indices.update(point_indices)
             points = self.points[point_indices]
-            if self.refit:
-                param, obb = self.fit_plane(points, mode='PCA')
-            else:
-                param = np.array([float(j) for j in parameters[i][18:-1].split()])
-                obb = np.array([[-np.inf, -np.inf, -np.inf], [-np.inf, np.inf, -np.inf],
-                                [np.inf, np.inf, -np.inf], [np.inf, -np.inf, -np.inf]])
-            if param is None or len(param) != 4:
-                continue
-            params.append(param)
-            obbs.append(obb)
 
-            if len(point_indices) > 0:
-                bounds.append(self._points_bound(points))
+            if len(point_indices) == 0:
+                # empty group -> global bounds and no refit
+                if self.refit:
+                    logger.warning('refit skipped for empty group')
+                param = np.array([float(j) for j in parameters[i][18:-1].split()])
+                aabb = self._points_bound(self.points)
+                obb = aabb
+
             else:
-                bounds.append(self._points_bound(self.points))  # big bound
+                # valid group -> local bounds and optional refit
+                if self.refit:
+                    param, obb = self.fit_plane(points, mode='PCA')
+                else:
+                    param = np.array([float(j) for j in parameters[i][18:-1].split()])
+                    _, obb = self.fit_plane(points, mode='PCA')
+                aabb = self._points_bound(points)
+
+            if param is None or len(param) != 4:
+                logger.warning(f'bad parameter skipped: {param}')
+                continue
+
+            params.append(param)
+            aabbs.append(aabb)
+            obbs.append(obb)
             groups.append(points)
+
         ungrouped_indices = set(range(len(self.points))).difference(grouped_indices)
         ungrouped_points = self.points[list(ungrouped_indices)]  # points that belong to no groups
-        return (np.array(params), np.array(bounds), np.array(groups, dtype=object),
-                np.array(ungrouped_points), np.array(obbs))
+        return (np.array(params), np.array(aabbs), np.array(obbs), np.array(groups, dtype=object),
+                np.array(ungrouped_points))
 
     @staticmethod
     def _points_bound(points):
@@ -266,7 +277,7 @@ class VertexGroup:
         self.points = (self.points - centroid) / scale
 
         # update planes and bounds as point coordinates has changed
-        self.planes, self.bounds, self.points_grouped, _ = self.get_primitives()
+        self.planes, self.aabbs, self.obbs, self.points_grouped, self.points_ungrouped = self.get_primitives()
 
         # safely sample points after planes are extracted
         if num:
@@ -303,7 +314,7 @@ class VertexGroup:
         self.points = (self.points - offset) / (bounds.max() * scale) + centroid
 
         # update planes and bounds as point coordinates has changed
-        self.planes, self.bounds, self.points_grouped, _, self.obbs = self.get_primitives()
+        self.planes, self.aabbs, self.obbs, self.points_grouped, self.points_ungrouped = self.get_primitives()
 
         # safely sample points after planes are extracted
         if num:
@@ -562,9 +573,9 @@ class VertexGroup:
         logger.info('writing plane parameters into {}'.format(filepath))
         np.save(filepath, self.planes)
 
-    def save_bounds_npy(self, filepath):
+    def save_aabbs_npy(self, filepath):
         """
-        Save plane bounds into an npy file.
+        Save plane AABBs into an npy file.
 
         Parameters
         ----------
@@ -572,7 +583,7 @@ class VertexGroup:
             Filepath to save npy file
         """
         logger.info('writing plane bounds into {}'.format(filepath))
-        np.save(filepath, self.bounds)
+        np.save(filepath, self.aabbs)
 
 
 class VertexGroupReference:
@@ -604,10 +615,10 @@ class VertexGroupReference:
         self.num_samples = num_samples
         self.processed = False
         self.points = None
-        self.planes = []
-        self.bounds = []
-        self.obbs = []
-        self.points_grouped = []
+        self.planes = None
+        self.aabbs = None
+        self.obbs = None
+        self.points_grouped = None
 
         self.mesh = trimesh.load_mesh(self.filepath)
 
@@ -640,6 +651,11 @@ class VertexGroupReference:
         # sample on all faces
         samples, face_indices = self.mesh.sample(count=self.num_samples, return_index=True)  # face_indices match facets
 
+        planes = []
+        aabbs = []
+        obbs = []
+        groups = []
+
         for facet in self.mesh.facets:  # a list of face indices for coplanar adjacent faces
             # group corresponding samples by facet
             points = []
@@ -658,16 +674,17 @@ class VertexGroupReference:
 
             # calculate parameters
             plane, obb = VertexGroup.fit_plane(vertices)
-            self.planes.append(plane)
-            self.bounds.append(self._points_bound(vertices))
-            self.obbs.append(obb)
-            self.points_grouped.append(points)
+
+            planes.append(plane)
+            aabbs.append(self._points_bound(vertices))
+            obbs.append(obb)
+            groups.append(points)
 
         # self.mesh.facets do not cover all faces
         faces_extracted = np.concatenate(self.mesh.facets)
-        faces_left = np.setdiff1d(np.arange(len(self.mesh.faces)), faces_extracted)
+        faces_remainder = np.setdiff1d(np.arange(len(self.mesh.faces)), faces_extracted)
 
-        for face_index in faces_left:
+        for face_index in faces_remainder:
             # group corresponding samples by faces
             points = []
             sample_indices = np.where(face_indices == face_index)[0]
@@ -684,12 +701,16 @@ class VertexGroupReference:
 
             # calculate parameters
             plane, obb = VertexGroup.fit_plane(vertices)
-            self.planes.append(plane)
-            self.obbs.append(obb)
-            self.bounds.append(self._points_bound(vertices))
-            self.points_grouped.append(points)
+            planes.append(plane)
+            aabbs.append(self._points_bound(vertices))
+            obbs.append(obb)
+            groups.append(points)
 
-        self.points = np.concatenate(self.points_grouped)
+        self.points = np.concatenate(groups)
+        self.planes = np.array(planes)
+        self.aabbs = np.array(aabbs)
+        self.obbs = np.array(obbs)
+        self.points_grouped = np.array(groups, dtype=object)
 
     def save_vg(self, filepath):
         """
