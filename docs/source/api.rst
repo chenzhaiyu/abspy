@@ -27,7 +27,7 @@ API Reference
 
     .. autofunction:: abspy.VertexGroup.save_planes_npy
 
-    .. autofunction:: abspy.VertexGroup.save_bounds_npy
+    .. autofunction:: abspy.VertexGroup.save_aabbs_npy
 
 
 .. autoclass:: abspy.VertexGroupReference
