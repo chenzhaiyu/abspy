@@ -69,7 +69,7 @@ pip install .
 
 ### Example 1 - Reconstruction from point cloud
 
-The example loads a point cloud to `VertexGroup` (`.vg`), partitions ambient space into a cell complex, creats the adjacency graph, and extracts the object's outer surface.
+The example loads a point cloud to `VertexGroup` (`.vg`), partitions ambient space into a cell complex, creates the adjacency graph, and extracts the object's outer surface.
 
 ```python
 from abspy import VertexGroup, AdjacencyGraph, CellComplex
@@ -114,7 +114,7 @@ adjacency_graph.save_surface_obj('surface.obj', engine='rendering')
 
 ### Example 2 - Convex decomposition from mesh
 
-The example loads a mesh to `VertexGroupReference`, partitions ambient space into a cell complex, identify cells inside reference mesh, and visualize the cells.
+The example loads a mesh to `VertexGroupReference`, partitions ambient space into a cell complex, identifies cells inside reference mesh, and visualizes the cells.
 
 ```python
 from abspy import VertexGroupReference
