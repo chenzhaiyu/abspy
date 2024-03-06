@@ -5,10 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `VertexGroupReference.perturb` to perturb plane normals.
+
 ### Changed
 - `VertexGroupReference.bounds` &rarr; `VertexGroupReference.aabbs`.
 - `VertexGroup.save_bounds_npy` &rarr; `VertexGroup.save_aabbs_npy`.
 - Correct SDF file `test_sdf.npy` for improved complex with OBB.
+- Update Sphinx requirements.
 
 ## [0.2.4] - 2023-12-02
 ### Added

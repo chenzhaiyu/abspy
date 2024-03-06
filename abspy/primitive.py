@@ -352,6 +352,7 @@ class VertexGroup:
             logger.warning('LSA introduces distortions when the plane crosses the origin')
             param = np.linalg.lstsq(points, np.expand_dims(np.ones(len(points)), 1))
             param = np.append(param[0], -1)
+            obb = None
 
         else:
             # PCA followed by shift
@@ -368,7 +369,7 @@ class VertexGroup:
             logger.debug('explained_variance_ratio: {}'.format(pca.explained_variance_ratio_))
 
             # normal vector of minimum variance
-            normal = eig_vec[2, :]  # (a, b, c)
+            normal = eig_vec[2, :]  # (a, b, c) normalized
             centroid = np.mean(points, axis=0)
 
             # every point (x, y, z) on the plane satisfies a * x + b * y + c * z = -d
@@ -711,6 +712,33 @@ class VertexGroupReference:
         self.aabbs = np.array(aabbs)
         self.obbs = np.array(obbs)
         self.points_grouped = np.array(groups, dtype=object)
+
+    def perturb(self, sigma):
+        """
+        Perturb plane normals with Gaussian noise.
+
+        Parameters
+        ----------
+        sigma: (1,) float
+            Gaussian noise standard deviation
+        """
+        # length of noise vector
+        l = np.abs(np.random.normal(loc=0, scale=sigma, size=self.planes.shape[0]))
+
+        # normal noise
+        na = np.random.normal(loc=0, scale=1, size=self.planes.shape[0])
+        nb = np.random.normal(loc=0, scale=1, size=self.planes.shape[0])
+        nc = np.random.normal(loc=0, scale=1, size=self.planes.shape[0])
+
+        # normalized noise vector
+        n = np.array([na, nb, nc]).T / np.sqrt(na ** 2 + nb ** 2 + nc ** 2)[:, np.newaxis] * l[:, np.newaxis]
+
+        # apply noise
+        self.planes[:, :3] += n
+
+        # re-normalize normal
+        norms = np.linalg.norm(self.planes[:, :3], axis=1)
+        self.planes[:, :3] /= norms[:, np.newaxis]
 
     def save_vg(self, filepath):
         """

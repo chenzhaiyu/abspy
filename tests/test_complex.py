@@ -69,6 +69,9 @@ def example_cell_complex_from_mesh():
     from abspy import VertexGroupReference
     vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_church.obj', num_samples=10000)
 
+    # perturb plane normal vectors
+    vertex_group_reference.perturb(sigma=0.001)
+
     # construct cell complex
     cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference.aabbs,
                                vertex_group_reference.obbs, build_graph=True, quiet=False)
