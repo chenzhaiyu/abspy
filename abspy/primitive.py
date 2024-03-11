@@ -740,6 +740,49 @@ class VertexGroupReference:
         norms = np.linalg.norm(self.planes[:, :3], axis=1)
         self.planes[:, :3] /= norms[:, np.newaxis]
 
+    def inject_points(self, points, threshold=0.05, overwrite=True):
+        """
+        Inject unordered points to vertex groups.
+
+        Parameters
+        ----------
+        points: (n, 3) float
+            Point cloud
+        threshold: float
+            Distance threshold
+        overwrite: bool
+            Replace sampled points with input points if set True, otherwise append
+        """
+        assert self.points is not None
+
+        # assign input points to groups
+        inputs = points[:, np.newaxis, :]
+        reference = self.points[np.newaxis, :, :]
+        distances = np.sum(np.abs(inputs - reference), axis=2)  # manhattan distance
+
+        # find the minimum distance and corresponding reference point index
+        min_distances = np.min(distances, axis=1)
+        min_reference_indices = np.argmin(distances, axis=1)
+
+        # determine the group for each minimal reference point index
+        group_boundaries = np.cumsum([0] + [chunk.shape[0] for chunk in self.points_grouped])
+        min_reference_groups = np.digitize(min_reference_indices, group_boundaries) - 1
+        min_reference_groups[min_distances > threshold] = -1
+
+        # append points to groups (substitute or keep minimal)
+        for i in range(len(self.points_grouped)):
+            group_mask = min_reference_groups == i
+            if not overwrite:
+                self.points_grouped[i] = np.concatenate([self.points_grouped[i], points[group_mask]], axis=0)
+            elif any(group_mask):
+                self.points_grouped[i] = points[group_mask]
+            else:
+                self.points_grouped[i] = self.points_grouped[i][:1]
+
+        # update points
+        self.points = np.concatenate(self.points_grouped)
+        self.points = np.concatenate([self.points, points[min_reference_groups == -1]])
+
     def save_vg(self, filepath):
         """
         Save primitives into a vg file.
@@ -770,6 +813,9 @@ class VertexGroupReference:
         for i, group in enumerate(self.points_grouped):
             for _ in group:
                 out += '{} {} {} '.format(*self.planes[i][:3])
+        num_remainder_points = len(self.points) - sum(len(g) for g in self.points_grouped)
+        for _ in range(num_remainder_points):
+            out += '{} {} {} '.format(random(), random(), random())
 
         # groups
         out += '\nnum_groups: {}\n'.format(len(self.points_grouped))

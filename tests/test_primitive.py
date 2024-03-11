@@ -1,3 +1,4 @@
+import numpy as np
 from pathlib import Path
 
 from abspy import VertexGroup, VertexGroupReference
@@ -50,6 +51,9 @@ def example_extract_reference_primitives():
     Extract primitives from VertexGroupReference (.ply) file.
     """
     vertex_group_reference = VertexGroupReference(filepath=dir_tests / 'test_data' / 'test_mesh.ply', num_samples=10000)
+
+    # inject points
+    vertex_group_reference.inject_points(np.random.rand(1000, 3) - 0.5, overwrite=True)
 
     # save extracted primitives to both a Vertex Group (.vg) file and a binary Vertex group (.bvg) file
     vertex_group_reference.save_vg(dir_tests / 'test_output' / 'reference.vg')
