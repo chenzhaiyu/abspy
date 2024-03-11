@@ -36,6 +36,14 @@ API Reference
 
     .. autofunction:: abspy.VertexGroupReference.process
 
+    .. autofunction:: abspy.VertexGroupReference.perturb
+
+    .. autofunction:: abspy.VertexGroupReference.inject_points
+
+    .. autofunction:: abspy.VertexGroupReference.bottom_indices
+
+    .. autofunction:: abspy.VertexGroupReference.wall_indices
+
     .. autofunction:: abspy.VertexGroupReference.save_vg
 
     .. autofunction:: abspy.VertexGroupReference.save_bvg

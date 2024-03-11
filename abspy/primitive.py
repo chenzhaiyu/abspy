@@ -13,6 +13,7 @@ attached to the README document.
 
 from random import random
 from pathlib import Path
+from functools import reduce
 import struct
 
 import numpy as np
@@ -646,7 +647,6 @@ class VertexGroupReference:
         """
         Start processing mesh data.
         """
-        from functools import reduce
         logger.info('processing {}'.format(self.filepath))
 
         # sample on all faces
@@ -712,6 +712,63 @@ class VertexGroupReference:
         self.aabbs = np.array(aabbs)
         self.obbs = np.array(obbs)
         self.points_grouped = np.array(groups, dtype=object)
+        self.processed = True
+
+    @property
+    def bottom_indices(self, epsilon=0.01):
+        """
+        Group indices of bottom facets.
+
+        Parameters
+        ----------
+        epsilon: (1,) float
+            Tolerance for horizontality and minimum Z predicates
+        """
+        is_horizontal = np.logical_and(np.abs(self.planes[:, 0]) < epsilon, np.abs(self.planes[:, 1]) < epsilon)
+        horizontal_indices = np.where(is_horizontal)[0]
+
+        z = -self.planes[is_horizontal][:, 2] * self.planes[is_horizontal][:, 3]
+        is_bottom = z < (np.min(z) + epsilon)
+
+        return horizontal_indices[is_bottom]
+
+    @property
+    def wall_indices(self, epsilon=0.01):
+        """
+        Group indices of wall facets.
+
+        Parameters
+        ----------
+        epsilon: (1,) float
+            Tolerance for verticality predicate
+        """
+        wall_indices = []
+        is_vertical = np.abs(self.planes[:, 2]) < epsilon
+        vertical_indices = np.where(is_vertical)[0]
+
+        num_facets = len(self.mesh.facets)
+        faces_remainder = np.setdiff1d(np.arange(len(self.mesh.faces)), np.concatenate(self.mesh.facets))
+
+        # extract bottom vertices
+        vertices_bottom = set()  # indices of bottom vertices
+        for b in self.bottom_indices:
+            if b < num_facets:
+                faces = self.mesh.faces[self.mesh.facets[b]]
+                vertices_bottom.update(reduce(np.union1d, faces))
+            else:
+                vertices_bottom.update(faces_remainder[b - num_facets])
+
+        # extract vertical indices
+        for v in vertical_indices:
+            if v < num_facets:
+                faces = self.mesh.faces[self.mesh.facets[v]]
+                vertices_vertical = reduce(np.union1d, faces)  # indices of vertices
+            else:
+                vertices_vertical = faces_remainder[v - num_facets]  # indices of vertices
+
+            if set(vertices_vertical).intersection(vertices_bottom):
+                wall_indices.append(v)
+        return wall_indices
 
     def perturb(self, sigma):
         """
@@ -740,7 +797,7 @@ class VertexGroupReference:
         norms = np.linalg.norm(self.planes[:, :3], axis=1)
         self.planes[:, :3] /= norms[:, np.newaxis]
 
-    def inject_points(self, points, threshold=0.05, overwrite=True):
+    def inject_points(self, points, threshold=0.05, overwrite=True, keep_bottom=False, keep_wall=False, min_groupsize=1):
         """
         Inject unordered points to vertex groups.
 
@@ -748,10 +805,16 @@ class VertexGroupReference:
         ----------
         points: (n, 3) float
             Point cloud
-        threshold: float
+        threshold: (1,) float
             Distance threshold
         overwrite: bool
-            Replace sampled points with input points if set True, otherwise append
+            Overwrite sampled points with input points if set True, otherwise append
+        keep_bottom: bool
+            Keep sampled points on bottom if set True, effective only when overwrite is True
+        keep_wall: bool
+            Keep sampled points on walls if set True, effective only when overwrite is True
+        min_groupsize: (1,) int
+            Minimal group size, only apply to dangling groups without injected points
         """
         assert self.points is not None
 
@@ -769,15 +832,17 @@ class VertexGroupReference:
         min_reference_groups = np.digitize(min_reference_indices, group_boundaries) - 1
         min_reference_groups[min_distances > threshold] = -1
 
-        # append points to groups (substitute or keep minimal)
+        # append points to groups (append, overwrite, or keep minimal)
         for i in range(len(self.points_grouped)):
             group_mask = min_reference_groups == i
             if not overwrite:
                 self.points_grouped[i] = np.concatenate([self.points_grouped[i], points[group_mask]], axis=0)
+            elif (keep_bottom and i in self.bottom_indices) or (keep_wall and i in self.wall_indices):
+                pass
             elif any(group_mask):
                 self.points_grouped[i] = points[group_mask]
             else:
-                self.points_grouped[i] = self.points_grouped[i][:1]
+                self.points_grouped[i] = self.points_grouped[i][:min_groupsize]
 
         # update points
         self.points = np.concatenate(self.points_grouped)

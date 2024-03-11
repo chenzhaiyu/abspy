@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- `VertexGroupReference.bottom_indices`.
+- `VertexGroupReference.wall_indices`.
 - `VertexGroupReference.perturb` to perturb plane normals.
 - `VertexGroupReference.inject_points` to inject and overwrite points.
 
