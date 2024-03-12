@@ -57,6 +57,9 @@ def example_extract_reference_primitives():
                                          keep_bottom=True, keep_wall=True, compute_normal=True,
                                          pseudo_normal=False, pseudo_size=0)
 
+    # save point cloud
+    vertex_group_reference.save_cloud(dir_tests / 'test_output' / 'reference.ply')
+
     # save extracted primitives to both a Vertex Group (.vg) file and a binary Vertex group (.bvg) file
     vertex_group_reference.save_vg(dir_tests / 'test_output' / 'reference.vg')
     vertex_group_reference.save_bvg(dir_tests / 'test_output' / 'reference.bvg')

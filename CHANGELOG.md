@@ -10,12 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VertexGroupReference.wall_indices`.
 - `VertexGroupReference.perturb` to perturb plane normals.
 - `VertexGroupReference.inject_points` to inject and overwrite points.
+- `VertexGroup.save_cloud` and `VertexGroupReference.save_cloud` to save point cloud and optionally normals.
 
 ### Changed
 - `VertexGroupReference.bounds` &rarr; `VertexGroupReference.aabbs`.
 - `VertexGroup.save_bounds_npy` &rarr; `VertexGroup.save_aabbs_npy`.
 - Correct SDF file `test_sdf.npy` for improved complex with OBB.
 - Update Sphinx requirements.
+- Fix writing (`.vg`/`.bvg`) by removing a place (previously KSR would crash)
 
 ## [0.2.4] - 2023-12-02
 ### Added

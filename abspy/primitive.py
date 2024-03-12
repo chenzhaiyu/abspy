@@ -73,6 +73,7 @@ class VertexGroup:
 
         self.refit = refit
         self.global_group = global_group
+        self.normals = None
 
         if process:
             self.process()
@@ -593,6 +594,21 @@ class VertexGroup:
         logger.info('writing plane bounds into {}'.format(filepath))
         np.save(filepath, self.aabbs)
 
+    def save_cloud(self, filepath):
+        """
+        Save point cloud into a common 3D format. Support formats: xyzn, xyzrgb, pts, ply, pcd.
+
+        Parameters
+        ----------
+        filepath: str or Path
+            Filepath to save point cloud file
+        """
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(self.points)
+        if self.normals is not None:
+            pcd.normals = o3d.utility.Vector3dVector(self.normals)
+        o3d.io.write_point_cloud(str(filepath), pcd)
+
 
 class VertexGroupReference:
     """
@@ -869,7 +885,7 @@ class VertexGroupReference:
             pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(
                 radius=4, max_nn=300))
             pcd.orient_normals_consistent_tangent_plane(k=15)
-            self.normals = pcd.normals
+            self.normals = np.asarray(pcd.normals)
 
     def save_vg(self, filepath):
         """
@@ -906,7 +922,7 @@ class VertexGroupReference:
             for _ in range(num_remainder_points):
                 out += '{} {} {} '.format(random(), random(), random())
         else:
-            for n in np.asarray(self.normals):
+            for n in self.normals:
                 out += '{} {} {} '.format(*n)
 
         # groups
@@ -962,7 +978,7 @@ class VertexGroupReference:
             for _ in range(num_remainder_points):
                 out.append(struct.pack('fff', random(), random(), random()))
         else:
-            for n in np.array(self.normals):
+            for n in self.normals:
                 out.append(struct.pack('fff', *n))
 
         # groups
@@ -985,3 +1001,18 @@ class VertexGroupReference:
 
         with open(filepath, 'wb') as fout:
             fout.writelines(out)
+
+    def save_cloud(self, filepath):
+        """
+        Save point cloud into a common 3D format. Support formats: xyzn, xyzrgb, pts, ply, pcd.
+
+        Parameters
+        ----------
+        filepath: str or Path
+            Filepath to save point cloud file
+        """
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(self.points)
+        if self.normals is not None:
+            pcd.normals = o3d.utility.Vector3dVector(self.normals)
+        o3d.io.write_point_cloud(str(filepath), pcd)
