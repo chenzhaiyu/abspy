@@ -814,7 +814,7 @@ class VertexGroupReference:
         keep_wall: bool
             Keep sampled points on walls if set True, effective only when overwrite is True
         min_groupsize: (1,) int
-            Minimal group size, only apply to dangling groups without injected points
+            Minimal group size, only apply to dangling groups without injected points, effective only when overwrite is True
         """
         assert self.points is not None
 
@@ -832,7 +832,7 @@ class VertexGroupReference:
         min_reference_groups = np.digitize(min_reference_indices, group_boundaries) - 1
         min_reference_groups[min_distances > threshold] = -1
 
-        # append points to groups (append, overwrite, or keep minimal)
+        # append points to groups (append, overwrite, keep all, or keep minimal)
         for i in range(len(self.points_grouped)):
             group_mask = min_reference_groups == i
             if not overwrite:

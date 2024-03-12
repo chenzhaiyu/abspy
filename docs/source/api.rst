@@ -40,9 +40,9 @@ API Reference
 
     .. autofunction:: abspy.VertexGroupReference.inject_points
 
-    .. autofunction:: abspy.VertexGroupReference.bottom_indices
+    .. autoproperty:: abspy.VertexGroupReference.bottom_indices
 
-    .. autofunction:: abspy.VertexGroupReference.wall_indices
+    .. autoproperty:: abspy.VertexGroupReference.wall_indices
 
     .. autofunction:: abspy.VertexGroupReference.save_vg
 
