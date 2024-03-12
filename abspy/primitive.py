@@ -23,6 +23,12 @@ from .logger import attach_to_log
 
 logger = attach_to_log()
 
+try:
+    import open3d as o3d
+except ModuleNotFoundError:
+    logger.warning('Open3D import failed')
+    o3d = None
+
 
 class VertexGroup:
     """
@@ -431,9 +437,9 @@ class VertexGroup:
         out += 'num_points: {}\n'.format(len(points_grouped) + len(points_ungrouped))
         for i in points_grouped.flatten():
             # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
-            out += ' ' + str(i)
+            out += '{} '.format(i)
         for i in points_ungrouped.flatten():
-            out += ' ' + str(i)
+            out += '{} '.format(i)
 
         # colors (no color needed)
         out += '\nnum_colors: {}'.format(0)
@@ -623,6 +629,7 @@ class VertexGroupReference:
         self.points_grouped = None
 
         self.mesh = trimesh.load_mesh(self.filepath)
+        self.normals = None
 
         if process:
             self.process()
@@ -797,7 +804,8 @@ class VertexGroupReference:
         norms = np.linalg.norm(self.planes[:, :3], axis=1)
         self.planes[:, :3] /= norms[:, np.newaxis]
 
-    def inject_points(self, points, threshold=0.05, overwrite=True, keep_bottom=False, keep_wall=False, min_groupsize=1):
+    def inject_points(self, points, threshold=0.05, overwrite=True, keep_bottom=False, keep_wall=False,
+                      compute_normal=False, pseudo_normal=False, pseudo_size=1):
         """
         Inject unordered points to vertex groups.
 
@@ -813,8 +821,14 @@ class VertexGroupReference:
             Keep sampled points on bottom if set True, effective only when overwrite is True
         keep_wall: bool
             Keep sampled points on walls if set True, effective only when overwrite is True
-        min_groupsize: (1,) int
-            Minimal group size, only apply to dangling groups without injected points, effective only when overwrite is True
+        compute_normal: bool
+            Compute normal if set True, otherwise inherit normal from plane parameters
+        pseudo_normal: bool
+            Take pseudo points into account for normal estimation if set True, otherwise random normal for them,
+            not implemented
+        pseudo_size: (1,) int
+            Minimal group size for pseudo group without injected points,
+            only apply to dangling groups without injected points, effective only when overwrite is True
         """
         assert self.points is not None
 
@@ -833,6 +847,7 @@ class VertexGroupReference:
         min_reference_groups[min_distances > threshold] = -1
 
         # append points to groups (append, overwrite, keep all, or keep minimal)
+        pseudo_groups = []
         for i in range(len(self.points_grouped)):
             group_mask = min_reference_groups == i
             if not overwrite:
@@ -842,11 +857,19 @@ class VertexGroupReference:
             elif any(group_mask):
                 self.points_grouped[i] = points[group_mask]
             else:
-                self.points_grouped[i] = self.points_grouped[i][:min_groupsize]
+                self.points_grouped[i] = self.points_grouped[i][:pseudo_size]
+                pseudo_groups.append(i)
 
-        # update points
+        # update points and optionally their normals
         self.points = np.concatenate(self.points_grouped)
         self.points = np.concatenate([self.points, points[min_reference_groups == -1]])
+        if compute_normal:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(self.points)
+            pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(
+                radius=4, max_nn=300))
+            pcd.orient_normals_consistent_tangent_plane(k=15)
+            self.normals = pcd.normals
 
     def save_vg(self, filepath):
         """
@@ -868,19 +891,23 @@ class VertexGroupReference:
         out += 'num_points: {}\n'.format(len(self.points))
         for i in self.points.flatten():
             # https://stackoverflow.com/questions/54367816/numpy-np-fromstring-not-working-as-hoped
-            out += ' ' + str(i)
+            out += '{} '.format(i)
 
         # colors (no color needed)
         out += '\nnum_colors: {}'.format(0)
 
         # normals
         out += '\nnum_normals: {}\n'.format(len(self.points))
-        for i, group in enumerate(self.points_grouped):
-            for _ in group:
-                out += '{} {} {} '.format(*self.planes[i][:3])
-        num_remainder_points = len(self.points) - sum(len(g) for g in self.points_grouped)
-        for _ in range(num_remainder_points):
-            out += '{} {} {} '.format(random(), random(), random())
+        if self.normals is None:
+            for i, group in enumerate(self.points_grouped):
+                for _ in group:
+                    out += '{} {} {} '.format(*self.planes[i][:3])
+            num_remainder_points = len(self.points) - sum(len(g) for g in self.points_grouped)
+            for _ in range(num_remainder_points):
+                out += '{} {} {} '.format(random(), random(), random())
+        else:
+            for n in np.asarray(self.normals):
+                out += '{} {} {} '.format(*n)
 
         # groups
         out += '\nnum_groups: {}\n'.format(len(self.points_grouped))
@@ -927,9 +954,16 @@ class VertexGroupReference:
 
         # normals
         out.append(struct.pack('i', len(self.points)))
-        for i, group in enumerate(self.points_grouped):
-            for _ in group:
-                out.append(struct.pack('fff', *self.planes[i][:3]))
+        if self.normals is None:
+            for i, group in enumerate(self.points_grouped):
+                for _ in group:
+                    out.append(struct.pack('fff', *self.planes[i][:3]))
+            num_remainder_points = len(self.points) - sum(len(g) for g in self.points_grouped)
+            for _ in range(num_remainder_points):
+                out.append(struct.pack('fff', random(), random(), random()))
+        else:
+            for n in np.array(self.normals):
+                out.append(struct.pack('fff', *n))
 
         # groups
         out.append(struct.pack('i', len(self.points_grouped)))

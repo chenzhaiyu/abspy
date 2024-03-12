@@ -54,7 +54,8 @@ def example_extract_reference_primitives():
 
     # inject points
     vertex_group_reference.inject_points(np.random.rand(100, 3) - 0.5, threshold=0.05, overwrite=True,
-                                         keep_bottom=True, keep_wall=True, min_groupsize=0)
+                                         keep_bottom=True, keep_wall=True, compute_normal=True,
+                                         pseudo_normal=False, pseudo_size=0)
 
     # save extracted primitives to both a Vertex Group (.vg) file and a binary Vertex group (.bvg) file
     vertex_group_reference.save_vg(dir_tests / 'test_output' / 'reference.vg')
