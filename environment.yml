@@ -435,3 +435,4 @@ dependencies:
       - sage-docbuild==10.0
       - sage-setup==10.0
       - sagemath-standard==10.0
+      - open3d

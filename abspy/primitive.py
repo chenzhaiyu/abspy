@@ -787,11 +787,11 @@ class VertexGroupReference:
                 faces = self.mesh.faces[self.mesh.facets[v]]
                 vertices_vertical = reduce(np.union1d, faces)  # indices of vertices
             else:
-                vertices_vertical = faces_remainder[v - num_facets]  # indices of vertices
+                vertices_vertical = self.mesh.faces[faces_remainder[v - num_facets]]  # indices of vertices
 
             if set(vertices_vertical).intersection(vertices_bottom):
                 wall_indices.append(v)
-        return wall_indices
+        return np.array(wall_indices)
 
     def perturb(self, sigma):
         """
