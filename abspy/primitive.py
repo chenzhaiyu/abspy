@@ -779,7 +779,7 @@ class VertexGroupReference:
                 faces = self.mesh.faces[self.mesh.facets[b]]
                 vertices_bottom.update(reduce(np.union1d, faces))
             else:
-                vertices_bottom.update(faces_remainder[b - num_facets])
+                vertices_bottom.update(self.mesh.faces[faces_remainder[b - num_facets]])
 
         # extract vertical indices
         for v in vertical_indices:
