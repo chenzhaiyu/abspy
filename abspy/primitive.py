@@ -17,6 +17,7 @@ from functools import reduce
 import struct
 
 import numpy as np
+from sklearn.neighbors import KDTree
 from sklearn.decomposition import PCA
 
 from .logger import attach_to_log
@@ -44,7 +45,7 @@ class VertexGroup:
         ----------
         filepath: str or Path
             Filepath to vertex group file (.vg) or binary vertex group file (.bvg)
-        process: bool 
+        process: bool
             Immediate processing if set True
         quiet: bool
             Disable logging if set True
@@ -162,9 +163,9 @@ class VertexGroup:
         ----------
         row: int
             Row number where points are specified, defaults to 1 for filename.vg
-        
+
         Returns
-        ----------        
+        ----------
         as_float: (n, 3) float
             Point cloud
         """
@@ -373,7 +374,7 @@ class VertexGroup:
             obb = np.array([[point_min[0], point_min[1], 0], [point_min[0], point_max[1], 0],
                             [point_max[0], point_max[1], 0], [point_max[0], point_min[1], 0]])
             obb = pca.inverse_transform(obb)
-                
+
             logger.debug('explained_variance_ratio: {}'.format(pca.explained_variance_ratio_))
 
             # normal vector of minimum variance
@@ -659,6 +660,7 @@ class VertexGroupReference:
         ----------
         points: (n, 3) float
             Points
+
         Returns
         ----------
         as_float: (2, 3) float
@@ -746,6 +748,11 @@ class VertexGroupReference:
         ----------
         epsilon: (1,) float
             Tolerance for horizontality and minimum Z predicates
+
+        Returns
+        ----------
+        as_int: (n,) int
+            Indices of bottom groups
         """
         is_horizontal = np.logical_and(np.abs(self.planes[:, 0]) < epsilon, np.abs(self.planes[:, 1]) < epsilon)
         horizontal_indices = np.where(is_horizontal)[0]
@@ -764,6 +771,11 @@ class VertexGroupReference:
         ----------
         epsilon: (1,) float
             Tolerance for verticality predicate
+
+        Returns
+        ----------
+        as_int: (n,) int
+            Indices of wall groups
         """
         wall_indices = []
         is_vertical = np.abs(self.planes[:, 2]) < epsilon
@@ -848,14 +860,13 @@ class VertexGroupReference:
         """
         assert self.points is not None
 
-        # assign input points to groups
-        inputs = points[:, np.newaxis, :]
-        reference = self.points[np.newaxis, :, :]
-        distances = np.sum(np.abs(inputs - reference), axis=2)  # manhattan distance
+        # build KD-tree
+        kdtree = KDTree(self.points)
 
-        # find the minimum distance and corresponding reference point index
-        min_distances = np.min(distances, axis=1)
-        min_reference_indices = np.argmin(distances, axis=1)
+        # query the KD-tree to find nearest neighbors and minimal distances
+        min_distances, min_reference_indices = kdtree.query(points, k=1)
+        min_distances = min_distances.flatten()
+        min_reference_indices = min_reference_indices.flatten()
 
         # determine the group for each minimal reference point index
         group_boundaries = np.cumsum([0] + [chunk.shape[0] for chunk in self.points_grouped])
