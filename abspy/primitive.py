@@ -169,7 +169,15 @@ class VertexGroup:
         as_float: (n, 3) float
             Point cloud
         """
-        pc = np.fromstring(self.vgroup_ascii[row], sep=' ')
+        pc_lines = []
+
+        for line in self.vgroup_ascii[row:]:
+            # stop reading when the 'num_colors' keyword is found
+            if 'num_colors' in line:
+                break
+            pc_lines.append(line)
+
+        pc = np.fromstring(' '.join(pc_lines), sep=' ')
         return np.reshape(pc, (-1, 3))
 
     def get_primitives(self):
