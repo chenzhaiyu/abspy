@@ -29,6 +29,8 @@ API Reference
 
     .. autofunction:: abspy.VertexGroup.save_aabbs_npy
 
+    .. autofunction:: abspy.VertexGroup.save_cloud
+
 
 .. autoclass:: abspy.VertexGroupReference
     
@@ -47,6 +49,8 @@ API Reference
     .. autofunction:: abspy.VertexGroupReference.save_vg
 
     .. autofunction:: abspy.VertexGroupReference.save_bvg
+
+    .. autofunction:: abspy.VertexGroupReference.save_cloud
 
 
 .. autoclass:: abspy.CellComplex
