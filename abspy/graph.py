@@ -285,97 +285,139 @@ class AdjacencyGraph:
                 sorted_.append(connected[1])
         return sorted_
 
-    def save_surface_obj(self, filepath, cells=None, engine='rendering'):
+    @staticmethod
+    def _reorient_facets(facets):
+        """
+        Given a list of facets (each facet is a list of vertex indices),
+        reorient them so that every pair of adjacent facets shares a common edge
+        with opposite direction.
+
+        Assumes the mesh is connected and facet 0 is correctly oriented.
+        """
+        # Build a mapping from an unordered edge (sorted tuple) to a list of (face_index, edge)
+        edge_to_faces = {}
+        for fi, face in enumerate(facets):
+            n = len(face)
+            for j in range(n):
+                edge = (face[j], face[(j + 1) % n])
+                key = tuple(sorted(edge))
+                edge_to_faces.setdefault(key, []).append((fi, edge))
+
+        oriented = [False] * len(facets)
+        oriented[0] = True  # assume facet 0 is correctly oriented
+        queue = [0]
+
+        while queue:
+            current = queue.pop(0)
+            n = len(facets[current])
+            for j in range(n):
+                # Get the current facet's edge in its current order
+                edge = (facets[current][j], facets[current][(j + 1) % n])
+                key = tuple(sorted(edge))
+                # For every facet sharing this edge:
+                for neighbor_index, neighbor_edge in edge_to_faces.get(key, []):
+                    if not oriented[neighbor_index]:
+                        # For consistent orientation, the shared edge in neighbor should be the reverse of edge
+                        if neighbor_edge == edge:
+                            # If not, flip the neighbor facet
+                            facets[neighbor_index] = facets[neighbor_index][::-1]
+                        oriented[neighbor_index] = True
+                        queue.append(neighbor_index)
+        return facets
+
+    def save_surface_obj(self, filepath, cells=None, engine='mesh'):
         """
         Save the outer surface to an OBJ file, from interfaces between cells being cut.
 
         Parameters
         ----------
-        filepath: str or Path
-            Filepath to save obj file
-        cells: None or list of Polyhedra objects
-            Polyhedra cells
-        engine: str
-            Engine to extract surface, can be 'rendering', 'sorting' or 'projection'
+        filepath : str or Path
+            Filepath to save the OBJ file.
+        cells : None or list of Polyhedra objects
+            Polyhedra cells.
+        engine : str
+            Engine to extract surface. Allowed values are 'mesh' or 'soup' (polygon soup).
         """
         if not self.reachable:
             logger.error('no reachable cells. aborting')
             return
-        elif not self.non_reachable:
+        if not self.non_reachable:
             logger.error('no unreachable cells. aborting')
             return
-
         if not self._cached_interfaces and not cells:
             logger.error('neither cached interfaces nor cells are available. aborting')
             return
-
-        if engine not in {'rendering', 'sorting', 'projection'}:
-            logger.error('engine can be "rendering", "sorting" or "projection"')
+        if engine not in {'mesh', 'soup'}:
+            logger.error('engine can be "mesh" or "soup"')
             return
 
-        surface = None
-        surface_str = ''
-        num_vertices = 0
+        # Initialize variables
+        interfaces = []
+        surface = None if engine == 'soup' else None  # surface is only used in 'fast' engine
         tik = time.time()
 
+        # Loop over edges and process only those between a reachable and a non-reachable cell.
         for edge in self.graph.edges:
-            # facet is where one cell being outside and the other one being inside
             if edge[0] in self.reachable and edge[1] in self.non_reachable:
-                # retrieve interface and orient as on edge[0]
-                if self._cached_interfaces:
-                    interface = self._cached_interfaces[edge[0], edge[1]] if (edge[0],
-                                                                              edge[1]) in self._cached_interfaces else \
-                        self._cached_interfaces[edge[1], edge[0]]
-                else:
-                    interface = cells[self._uid_to_index(edge[0])].intersection(cells[self._uid_to_index(edge[1])])
-
+                r, nr = edge[0], edge[1]
             elif edge[1] in self.reachable and edge[0] in self.non_reachable:
-                # retrieve interface and orient as on edge[1]
-                if self._cached_interfaces:
-                    interface = self._cached_interfaces[edge[1], edge[0]] if (edge[1],
-                                                                              edge[0]) in self._cached_interfaces else \
-                        self._cached_interfaces[edge[0], edge[1]]
-                else:
-                    interface = cells[self._uid_to_index(edge[1])].intersection(cells[self._uid_to_index(edge[0])])
-
+                r, nr = edge[1], edge[0]
             else:
-                # where no cut is made
                 continue
 
-            if engine == 'rendering':
-                surface += interface.render_solid()
+            # Retrieve interface from cache if available; otherwise, compute intersection.
+            if self._cached_interfaces:
+                interface = self._cached_interfaces.get((r, nr)) or self._cached_interfaces.get((nr, r))
+            else:
+                interface = cells[self._uid_to_index(r)].intersection(cells[self._uid_to_index(nr)])
+            interfaces.append(interface)
 
-            elif engine == 'sorting':
-                for v in interface.vertices():
-                    surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
-                vertex_indices = [i + num_vertices + 1 for i in
-                                  self._sorted_vertex_indices(interface.adjacency_matrix())]
-                surface_str += 'f ' + ' '.join([str(f) for f in vertex_indices]) + '\n'
-                num_vertices += len(vertex_indices)
+            # For the 'fast' engine, accumulate rendered solid surfaces.
+            if engine == 'soup':
+                rendered = interface.render_solid()
+                surface = rendered if surface is None else surface + rendered
 
-            elif engine == 'projection':
-                projection = interface.projection()
-                polygon = projection.polygons[0]
-                for v in projection.coords:
-                    surface_str += 'v {} {} {}\n'.format(float(v[0]), float(v[1]), float(v[2]))
-                surface_str += 'f ' + ' '.join([str(f + num_vertices + 1) for f in polygon]) + '\n'
-                num_vertices += len(polygon)
-
-        if engine == 'rendering':
+        # Build the OBJ file string depending on the chosen engine.
+        if engine == 'soup':
             surface_obj = surface.obj_repr(surface.default_render_params())
+            lines = []
+            for obj in surface_obj:
+                lines.append(obj[0])
+                lines.extend(obj[2])
+                lines.extend(obj[3])
+            surface_str = "\n".join(lines)
+        elif engine == 'mesh':
+            # Compute facets for each interface.
+            facets = [
+                np.array(interface.vertices())[self._sorted_vertex_indices(interface.adjacency_matrix())]
+                for interface in interfaces
+            ]
+            # Extract unique vertices while preserving order.
+            flat_vertices = [tuple(vertex) for facet in facets for vertex in facet]
+            unique_vertices = list(dict.fromkeys(flat_vertices))
+            vertex_to_index = {vertex: idx for idx, vertex in enumerate(unique_vertices)}
 
-            for o in range(len(surface_obj)):
-                surface_str += surface_obj[o][0] + '\n'
-                surface_str += '\n'.join(surface_obj[o][2]) + '\n'
-                surface_str += '\n'.join(surface_obj[o][3]) + '\n'  # contents[o][4] are the interior facets
+            # Map each facet's vertices to indices.
+            facets_ = [[vertex_to_index[tuple(vertex)] for vertex in facet] for facet in facets]
+            # Reorient facets so that each adjacent pair shares a common edge in opposite directions.
+            facets_ = self._reorient_facets(facets_)
+
+            # Build OBJ lines.
+            obj_lines = [
+                "v {} {} {}".format(float(v[0]), float(v[1]), float(v[2])) for v in unique_vertices
+            ]
+            for facet in facets_:
+                face_line = "f " + " ".join(str(idx + 1) for idx in facet)
+                obj_lines.append(face_line)
+            surface_str = "\n".join(obj_lines)
 
         logger.info('surface extracted: {:.2f} s'.format(time.time() - tik))
 
-        # create the dir if not exists
+        # Ensure directory exists and write the OBJ file.
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, 'w') as f:
-            f.writelines(surface_str)
+            f.write(surface_str)
 
     def draw(self):
         """

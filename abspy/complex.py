@@ -732,7 +732,7 @@ class CellComplex:
         ----------
         indices_cells: None or (n,) int
             Indices of cells to be visualised
-        temp_dir: str
+        temp_dir: str or Path
             Temp dir to save intermediate visualisation
         """
         if self.constructed:
