@@ -109,7 +109,7 @@ adjacency_graph.assign_weights_to_st_links(...)
 _, _ = adjacency_graph.cut()
 
 # save surface model to an OBJ file
-adjacency_graph.save_surface_obj('surface.obj', engine='rendering')
+adjacency_graph.save_surface_obj('surface.obj', engine='mesh')
 ```
 
 ### Example 2 - Convex decomposition from mesh
@@ -148,7 +148,7 @@ For Windows users, you may need to build [SageMath from source](https://doc.sage
 
 * **How can I use *abspy* for surface reconstruction?**
 
-As demonstrated in `Example 1`, the surface can be addressed by graph cut &mdash; in between adjacent cells where one being *inside* and the other being *outside* &mdash; exactly where the cut is performed. For more information, please refer to ***[Points2Poly](https://github.com/chenzhaiyu/points2poly)*** which wraps ***abspy*** for building surface reconstruction.
+As shown in [`Example 1`](https://github.com/chenzhaiyu/abspy/edit/main/README.md#example-1---reconstruction-from-point-cloud), the surface is defined between adjacent cells where one is *inside* and the other *outside*. For more information, please refer to ***[Points2Poly](https://github.com/chenzhaiyu/points2poly)*** which integrates ***abspy*** with deep implicit fields, and ***[PolyGNN](https://github.com/chenzhaiyu/polygnn)*** which learns a piecewise planar occupancy function supported by ***abspy***, for 3D building reconstruction.
 
 ![adaptive](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/surface.png)
 
