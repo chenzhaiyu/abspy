@@ -1,0 +1,30 @@
+name: Run Automated Tests
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: abspy
+          environment-file: environment.yml
+          python-version: 3.10
+          auto-activate-base: false
+
+      - name: Run tests
+        run: |
+          python tests/test_complex.py
+          python tests/test_primitive.py
+          python tests/test_graph.py
+          python tests/test_combined.py
