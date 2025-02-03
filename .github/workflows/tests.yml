@@ -19,7 +19,6 @@ jobs:
         with:
           activate-environment: abspy
           environment-file: environment.yml
-          python-version: 3.10
           auto-activate-base: false
 
       - name: Run tests
