@@ -1,4 +1,4 @@
-name: abspy_test
+name: abspy
 channels:
   - conda-forge
   - defaults

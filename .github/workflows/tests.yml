@@ -21,6 +21,10 @@ jobs:
           environment-file: environment.yml
           auto-activate-base: false
 
+      # Post-installation override: upgrade abspy to the latest GitHub version
+      - name: Override abspy with GitHub version
+        run: pip install --upgrade git+https://github.com/chenzhaiyu/abspy.git@main
+
       - name: Run tests
         run: |
           python tests/test_complex.py
