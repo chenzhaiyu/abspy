@@ -23,7 +23,10 @@ jobs:
 
       # Post-installation override: upgrade abspy to the latest GitHub version
       - name: Override abspy with GitHub version
-        run: pip install --upgrade git+https://github.com/chenzhaiyu/abspy.git@main
+        shell: bash -l {0}
+        run: |
+          conda activate abspy
+          pip install --upgrade git+https://github.com/chenzhaiyu/abspy.git@main
 
       - name: Run tests
         run: |
