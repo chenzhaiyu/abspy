@@ -19,11 +19,19 @@ jobs:
         with:
           activate-environment: abspy
           environment-file: environment.yml
-          python-version: 3.10
           auto-activate-base: false
 
-      - name: Run tests
+      # Post-installation override: upgrade abspy to the latest GitHub version
+      - name: Override abspy with GitHub version
+        shell: bash -l {0}
         run: |
+          conda activate abspy
+          pip install --upgrade git+https://github.com/chenzhaiyu/abspy.git@main
+
+      - name: Run tests
+        shell: bash -l {0}
+        run: |
+          conda activate abspy
           python tests/test_complex.py
           python tests/test_primitive.py
           python tests/test_graph.py
