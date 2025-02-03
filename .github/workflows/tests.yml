@@ -30,6 +30,7 @@ jobs:
 
       - name: Run tests
         run: |
+          conda activate abspy
           python tests/test_complex.py
           python tests/test_primitive.py
           python tests/test_graph.py
