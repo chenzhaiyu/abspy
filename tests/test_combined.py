@@ -56,15 +56,11 @@ def example_combined():
     # build adjacency graph of the cell complex
     adjacency_graph = AdjacencyGraph(cell_complex.graph)
 
-    # apply weights (e.g., SDF values provided by neural network prediction)
-    sdf_values = np.load(dir_tests / 'test_data' / 'test_sdf.npy')
-    volumes = cell_complex.volumes(multiplier=10e5)
-    weights_dict = adjacency_graph.to_dict(sigmoid(sdf_values * volumes))
-
     # assign weights to n-links and st-links to the graph
     adjacency_graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap',
-                                              factor=0.001, cache_interfaces=True)  # provided by the cell complex
-    adjacency_graph.assign_weights_to_st_links(weights_dict)
+                                              factor=0.001, cache_interfaces=True)
+    adjacency_graph.assign_weights_to_st_links(
+        {c: 0.8 if c in adjacency_graph.to_uids(cells_in_mesh) else 0.2 for c in adjacency_graph.uid})
 
     # perform graph-cut to extract surface
     _, _ = adjacency_graph.cut()
