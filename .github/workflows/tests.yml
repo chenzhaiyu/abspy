@@ -26,7 +26,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate abspy
-          pip install --upgrade git+https://github.com/chenzhaiyu/abspy.git@main
+          pip install --upgrade .
 
       - name: Run tests
         shell: bash -l {0}

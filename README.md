@@ -139,6 +139,9 @@ if len(cells_in_mesh):
 
 Please find the usage of *abspy* at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
+## Contributing to *abspy*
+
+Please see the [Contribution Guide](https://github.com/chenzhaiyu/abspy/blob/main/CONTRIBUTING.md) for more information.
 
 ## FAQ
 

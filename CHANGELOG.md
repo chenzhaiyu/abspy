@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `engine='mesh'` for `AdjacencyGraph.save_surface_obj` for mesh output (https://github.com/chenzhaiyu/abspy/issues/18).
 - `.github/workflows/tests.yml`
+- `CONTRIBUTING.md`
 
 ### Removed
 - `engine='projection'` and `engine='sorted'` for `AdjacencyGraph.save_surface_obj`.
