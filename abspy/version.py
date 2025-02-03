@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = '0.2.5'
+__version__ = '0.2.6'
 
 if __name__ == '__main__':
     # print version if run directly i.e. in a CI script
