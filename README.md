@@ -1,11 +1,11 @@
 <img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/logo.png" width="480"/>
 
 -----------
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PyPI version](https://img.shields.io/pypi/v/abspy)](https://pypi.python.org/pypi/abspy/) [![Build status](https://readthedocs.org/projects/abspy/badge/)](https://abspy.readthedocs.io/en/latest/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PyPI version](https://img.shields.io/pypi/v/abspy)](https://pypi.python.org/pypi/abspy/) [![PyPI downloads](https://img.shields.io/pypi/dm/abspy?color=blue)](https://pypi.python.org/pypi/abspy/) [![Build status](https://readthedocs.org/projects/abspy/badge/)](https://abspy.readthedocs.io/en/latest/)
 
 ## Introduction
 
-***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond: an ambient 3D space is adaptively partitioned to form a linear cell complex with planar primitives, where an adjacency graph is dynamically obtained. The tool is designed primarily to support compact surface reconstruction and other applications as well.
+***abspy*** is a Python tool for 3D *adaptive binary space partitioning* and beyond. It adaptively partitions ambient 3D space into a linear cell complex using planar primitives, dynamically generating an adjacency graph in the process. Designed primarily for compact surface reconstruction, *abspy* also supports a range of other applications.
 
 <div align="center" width="480">
   <img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/animation.gif"><br>
@@ -36,20 +36,15 @@ conda env create -f environment.yml && conda activate abspy
 Still easy! Create a conda environment and enter it: 
 
 ```bash
-conda create --name abspy python=3.10 && conda activate abspy
+conda create --name abspy python=3.11 && conda activate abspy
 ```
 
 Install the dependencies:
 
 ```bash
-conda install -c conda-forge networkx numpy tqdm scikit-learn matplotlib colorlog scipy trimesh rtree pyglet sage=10.0 
-```
-
-Alternatively, you can use [mamba](https://github.com/mamba-org/mamba) for faster package parsing installation:
-
-```bash
-conda install mamba -c conda-forge
-mamba install -c conda-forge networkx numpy tqdm scikit-learn matplotlib colorlog scipy trimesh rtree pyglet sage=10.0 
+# You may replace `conda` with `mamba` for faster package parsing
+# conda install mamba -c conda-forge
+conda install -c conda-forge networkx numpy tqdm scikit-learn matplotlib colorlog scipy trimesh rtree pyglet sage=10.2 
 ```
 
 Preferably, the latest *abspy* release can be found and installed via [PyPI](https://pypi.org/project/abspy/):
@@ -137,7 +132,8 @@ if len(cells_in_mesh):
     cell_complex.visualise(indices_cells=cells_in_mesh)
 ```
 
-Please find the usage of *abspy* at [API reference](https://abspy.readthedocs.io/en/latest/api.html). For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
+Please find the usage of *abspy* at [API reference](https://abspy.readthedocs.io/en/latest/api.html), with self-explanatory examples in `./tests/test_*.py`. 
+For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
 ## Contributing to *abspy*
 
@@ -158,7 +154,7 @@ As shown in [`Example 1`](https://github.com/chenzhaiyu/abspy/tree/main#example-
 
 ## License
 
-[MIT](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/LICENSE)
+See the [MIT](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/LICENSE) license for details.
 
 ## Citation
 

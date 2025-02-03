@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Rename `engine='rendering'` &rarr; `engine='soup'` for `AdjacencyGraph.save_surface_obj`.
 - Reduce `environment.yml` to core dependencies.
+- Replace SDF input with fixed values in `tests/test_combined.py`.
 
 ## [0.2.5] - 2024-12-01
 ### Added

@@ -3,14 +3,14 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - defaults::python=3.10
+  - defaults::python=3.11
   - colorlog
   - matplotlib
   - networkx
   - numpy
   - pyglet
   - rtree
-  - sage=10.0
+  - sage=10.2
   - scikit-learn
   - scipy
   - tqdm
