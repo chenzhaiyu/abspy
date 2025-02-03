@@ -29,6 +29,7 @@ jobs:
           pip install --upgrade git+https://github.com/chenzhaiyu/abspy.git@main
 
       - name: Run tests
+        shell: bash -l {0}
         run: |
           conda activate abspy
           python tests/test_complex.py
