@@ -308,7 +308,7 @@ dependencies:
   - pyqt=5.15.4=py310hd8f1fbe_0
   - pyqt5-sip=12.9.0=py310hd8f1fbe_0
   - pysocks=1.7.1=pyha2e5f31_6
-  - python=3.10.13=hd12c33a_0_cpython
+  - python=3.10
   - python-dateutil=2.8.2=pyhd8ed1ab_0
   - python-fastjsonschema=2.19.0=pyhd8ed1ab_0
   - python-json-logger=2.0.7=pyhd8ed1ab_0
