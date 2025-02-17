@@ -25,7 +25,7 @@ Many applications—from remote sensing and robotics to computer graphics—requ
 
 ![A 2D illustration for adaptive binary space partitioning.\label{fig:2d}](assets/2d.png){ width=80% }
 
-Initially designed for research purposes, *abspy* has since evolved to support a wide range of 3D applications, particularly for compact reconstructions. It has been employed in various research projects and featured in several scientific publications (e.g., [@chen2022points2poly, @chen2024polygnn, @sulzer2024concise]) as well as graduate students projects.
+Initially designed for research purposes, *abspy* has since evolved to support a wide range of 3D applications, particularly for compact reconstructions. It has been employed in various research projects and featured in several scientific publications [@chen2022points2poly; @chen2024polygnn; @sulzer2024concise] as well as graduate students projects.
 
 # Overview of features
 The core features of *abspy* include:
