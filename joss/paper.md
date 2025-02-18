@@ -11,7 +11,7 @@ authors:
     orcid: 0000-0001-7084-0994
     affiliation: "1"
 affiliations:
- - name: Technical University of Munich
+ - name: Technical University of Munich, Germany
    index: 1
 date: 20 February 2025
 bibliography: paper.bib
