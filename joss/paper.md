@@ -46,6 +46,6 @@ The core features of *abspy* include:
 
 # Acknowledgements
 
-I acknowledge the feedback provided by [Liangliang Nan](https://github.com/LiangliangNan), Yuqing Wang, and Qian Bai, which greatly contributed to the development of this package.
+I acknowledge the feedback provided by [Liangliang Nan](https://github.com/LiangliangNan), [Hugo Ledoux](https://github.com/hugoledoux), Yuqing Wang, and Qian Bai, which greatly contributed to the development of this package.
 
 # References
