@@ -158,18 +158,4 @@ See the [MIT](https://raw.githubusercontent.com/chenzhaiyu/abspy/main/LICENSE) l
 
 ## Citation
 
-If you use *abspy* in a scientific work, please consider citing the paper:
-
-```bibtex
-@article{chen2022points2poly,
-  title = {Reconstructing compact building models from point clouds using deep implicit fields},
-  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
-  volume = {194},
-  pages = {58-73},
-  year = {2022},
-  issn = {0924-2716},
-  doi = {https://doi.org/10.1016/j.isprsjprs.2022.09.017},
-  url = {https://www.sciencedirect.com/science/article/pii/S0924271622002611},
-  author = {Zhaiyu Chen and Hugo Ledoux and Seyran Khademi and Liangliang Nan}
-}
-```
+TODO.
