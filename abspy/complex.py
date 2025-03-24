@@ -97,7 +97,8 @@ class CellComplex:
         # missing planes due to occlusion or incapacity of RANSAC
         self.additional_planes = additional_planes
 
-        self.initial_bound = initial_bound if initial_bound else self._pad_bound(
+        # Fix: Use explicit None check instead of boolean evaluation which is ambiguous for arrays
+        self.initial_bound = initial_bound if initial_bound is not None else self._pad_bound(
             [np.amin(aabbs[:, 0, :], axis=0), np.amax(aabbs[:, 1, :], axis=0)],
             padding=initial_padding)
         self.cells = [self._construct_initial_cell()]  # list of QQ
@@ -152,7 +153,7 @@ class CellComplex:
         # shallow copy of the primitives
         planes = list(copy(self.planes))
         aabbs = list(copy(self.aabbs))
-        obbs = list(copy(self.obbs))
+        obbs = list(copy(self.obbs)) if self.obbs is not None else []
         points = list(copy(self.points))
 
         # pre-compute cosine of theta
@@ -224,7 +225,7 @@ class CellComplex:
         self.obbs = np.array(obbs)
         self.points = np.array(points, dtype=object)
 
-    def prioritise_planes(self, prioritise_verticals=True):
+    def prioritise_planes(self, prioritise_verticals=False):
         """
         Prioritise certain planes to favour building reconstruction.
 

@@ -19,7 +19,7 @@ def example_combined():
     Full workflow from VertexGroup to reconstructed surface.
     """
     # load a point cloud in VertexGroup
-    vertex_group = VertexGroup(filepath=dir_tests / 'test_data' / 'test_points.vg')
+    vertex_group = VertexGroup(filepath=dir_tests / 'data' / 'test_points.vg')
 
     # normalise the point cloud
     vertex_group.normalise_to_centroid_and_scale()
@@ -44,12 +44,12 @@ def example_combined():
     cell_complex.print_info()
 
     # cells inside reference mesh
-    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'test_data' / 'test_mesh.ply')
+    cells_in_mesh = cell_complex.cells_in_mesh(dir_tests / 'data' / 'test_mesh.ply')
 
     # visualise the inside cells (only if pyglet installation is found and valid indices are provided)
     if len(cells_in_mesh):
         try:
-            cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir=str(dir_tests) + '/test_output/')
+            cell_complex.visualise(indices_cells=cells_in_mesh, temp_dir=str(dir_tests) + '/output/')
         except (Exception, ImportError) as e:
             print(f'visualization skipped: {e}')
 
@@ -66,7 +66,7 @@ def example_combined():
     _, _ = adjacency_graph.cut()
 
     # save surface model to an OBJ file
-    adjacency_graph.save_surface_obj(filepath=dir_tests / 'test_output' / 'surface.obj', engine='mesh')
+    adjacency_graph.save_surface_obj(filepath=dir_tests / 'output' / 'surface.obj', engine='mesh')
 
 
 if __name__ == '__main__':

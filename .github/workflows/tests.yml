@@ -27,12 +27,91 @@ jobs:
         run: |
           conda activate abspy
           pip install --upgrade .
-
-      - name: Run tests
+      
+      - name: Install pytest
         shell: bash -l {0}
         run: |
           conda activate abspy
-          python tests/test_complex.py
-          python tests/test_primitive.py
-          python tests/test_graph.py
-          python tests/test_combined.py
+          pip install pytest
+
+      - name: Run unit tests
+        shell: bash -l {0}
+        run: |
+          conda activate abspy
+          pytest tests/ -v
+
+      - name: Run tutorial_complex.py
+        continue-on-error: true
+        id: tutorial_complex
+        shell: bash -l {0}
+        run: |
+          conda activate abspy
+          echo "Running tutorial_complex.py..."
+          python tutorials/tutorial_complex.py
+
+      - name: Run tutorial_primitive.py
+        continue-on-error: true
+        id: tutorial_primitive
+        shell: bash -l {0}
+        run: |
+          conda activate abspy
+          echo "Running tutorial_primitive.py..."
+          python tutorials/tutorial_primitive.py
+
+      - name: Run tutorial_graph.py
+        continue-on-error: true
+        id: tutorial_graph
+        shell: bash -l {0}
+        run: |
+          conda activate abspy
+          echo "Running tutorial_graph.py..."
+          python tutorials/tutorial_graph.py
+
+      - name: Run tutorial_combined.py
+        continue-on-error: true
+        id: tutorial_combined
+        shell: bash -l {0}
+        run: |
+          conda activate abspy
+          echo "Running tutorial_combined.py..."
+          python tutorials/tutorial_combined.py
+
+      - name: Check tutorial execution status
+        shell: bash -l {0}
+        run: |
+          echo "Checking tutorial execution results:"
+          
+          if [ "${{ steps.tutorial_complex.outcome }}" == "success" ]; then
+            echo "✅ tutorial_complex.py executed successfully"
+          else
+            echo "❌ tutorial_complex.py failed"
+            exit_code=1
+          fi
+          
+          if [ "${{ steps.tutorial_primitive.outcome }}" == "success" ]; then
+            echo "✅ tutorial_primitive.py executed successfully"
+          else
+            echo "❌ tutorial_primitive.py failed"
+            exit_code=1
+          fi
+          
+          if [ "${{ steps.tutorial_graph.outcome }}" == "success" ]; then
+            echo "✅ tutorial_graph.py executed successfully"
+          else
+            echo "❌ tutorial_graph.py failed"
+            exit_code=1
+          fi
+          
+          if [ "${{ steps.tutorial_combined.outcome }}" == "success" ]; then
+            echo "✅ tutorial_combined.py executed successfully"
+          else
+            echo "❌ tutorial_combined.py failed"
+            exit_code=1
+          fi
+          
+          if [ -n "$exit_code" ]; then
+            echo "One or more tutorials failed. Check the logs above for details."
+            exit 1
+          else
+            echo "All tutorials executed successfully!"
+          fi

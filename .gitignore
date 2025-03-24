@@ -130,7 +130,9 @@ dmypy.json
 # Pycharm
 .idea/
 
-# data and output
-tests/test_data/
-tests/test_output/
+# Visual Studio Code
+.vscode/
 
+# data and output
+data/
+output/

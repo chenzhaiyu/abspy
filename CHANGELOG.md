@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Unit tests integrated with GitHub Actions workflow.
+
+### Changed
+- Rename previous `tests` to `tutorials`.
+- `CellComplex.prioritise_planes` defaults `prioritise_verticals=False`.
+
+## [0.2.6] - 2025-02-03
+### Added
 - `engine='mesh'` for `AdjacencyGraph.save_surface_obj` for mesh output (https://github.com/chenzhaiyu/abspy/issues/18).
 - `.github/workflows/tests.yml`
 - `CONTRIBUTING.md`
