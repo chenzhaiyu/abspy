@@ -136,7 +136,7 @@ if len(cells_in_mesh):
     cell_complex.visualise(indices_cells=cells_in_mesh)
 ```
 
-Please find the usage of *abspy* at [API reference](https://abspy.readthedocs.io/en/latest/api.html), with self-explanatory examples in `./tutorials/tutorial_*.py`. 
+Please find the usage of *abspy* at [API reference](https://abspy.readthedocs.io/en/latest/api.html), with self-explanatory examples in [`./tutorials`](https://github.com/chenzhaiyu/abspy/blob/main/tutorials). 
 For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
 ## Contributing to *abspy*
