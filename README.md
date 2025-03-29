@@ -69,42 +69,46 @@ The example loads a point cloud to `VertexGroup` (`.vg`), partitions ambient spa
 ```python
 from abspy import VertexGroup, AdjacencyGraph, CellComplex
 
-# load a point cloud in VertexGroup 
-vertex_group = VertexGroup(filepath='points.vg')
+# load a point cloud in VertexGroup
+vertex_group = VertexGroup(filepath='tutorials/data/test_points.vg')
 
 # normalise point cloud
 vertex_group.normalise_to_centroid_and_scale()
 
-# additional planes to append (e.g., a bounding plane)
-additional_planes = [[0, 0, 1, -vertex_group.aabbs[:, 0, 2].min()]]
-
 # initialise cell complex
-cell_complex = CellComplex(vertex_group.planes, vertex_group.aabbs, vertex_group.obbs, vertex_group.points_grouped, build_graph=True, additional_planes=additional_planes)
+cell_complex = CellComplex(vertex_group.planes, vertex_group.aabbs, vertex_group.obbs, vertex_group.points_grouped, build_graph=True, additional_planes=None)
 
 # refine planar primitives
 cell_complex.refine_planes()
 
 # prioritise certain planes (e.g., vertical ones)
-cell_complex.prioritise_planes(prioritise_verticals=True)
+cell_complex.prioritise_planes(prioritise_verticals=False)
 
-# construct cell complex 
+# construct cell complex
 cell_complex.construct()
 
 # print info about cell complex
 cell_complex.print_info()
 
+# cells inside reference mesh
+cells_in_mesh = cell_complex.cells_in_mesh('tutorials/data/test_mesh.ply')
+
 # build adjacency graph from cell complex
 adjacency_graph = AdjacencyGraph(cell_complex.graph)
 
-# assign weights (e.g., occupancy by neural network prediction) to graph 
-adjacency_graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap', factor=0.001, cache_interfaces=True)
-adjacency_graph.assign_weights_to_st_links(...)
+# calculate volumes
+volumes = cell_complex.volumes(multiplier=10e5)
+volumes = [0.1 if i in cells_in_mesh else vol for i, vol in enumerate(volumes)]
+
+# assign graph weights
+adjacency_graph.assign_weights_to_n_links(cell_complex.cells, attribute='area_overlap', factor=0.000, cache_interfaces=True)
+adjacency_graph.assign_weights_to_st_links(adjacency_graph.to_dict(volumes))
 
 # perform graph cut to extract surface
 _, _ = adjacency_graph.cut()
 
 # save surface model to an OBJ file
-adjacency_graph.save_surface_obj('surface.obj', engine='mesh')
+adjacency_graph.save_surface_obj('tutorials/output/surface.obj', engine='mesh')
 ```
 
 ### Example 2 - Convex decomposition from mesh
@@ -113,7 +117,7 @@ The example loads a mesh to `VertexGroupReference`, partitions ambient space int
 
 ```python
 from abspy import VertexGroupReference
-vertex_group_reference = VertexGroupReference(filepath='mesh.obj')
+vertex_group_reference = VertexGroupReference(filepath='tutorials/data/test_mesh.ply')
 
 # initialise cell complex
 cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference.aabbs, vertex_group_reference.obbs, build_graph=True)
@@ -122,10 +126,10 @@ cell_complex = CellComplex(vertex_group_reference.planes, vertex_group_reference
 cell_complex.construct()
 
 # cells inside reference mesh
-cells_in_mesh = cell_complex.cells_in_mesh('mesh.obj', engine='distance')
+cells_in_mesh = cell_complex.cells_in_mesh('tutorials/data/test_mesh.ply', engine='distance')
 
 # save cell complex file
-cell_complex.save('complex.cc')
+cell_complex.save('tutorials/output/complex.cc')
 
 # visualise the inside cells
 if len(cells_in_mesh):

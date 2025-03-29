@@ -100,4 +100,4 @@ def run_benchmark(data_dir='./data/*.vg', save_file=False):
 
 
 if __name__ == '__main__':
-    run_benchmark(data_dir='tests/test_data/*.vg', save_file=False)
+    run_benchmark(data_dir='./data/*.vg', save_file=False)
