@@ -83,7 +83,4 @@ def attach_to_log(level=logging.INFO,
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
-    # set nicer numpy print options
-    np.set_printoptions(precision=5, suppress=True)
-
     return logger
