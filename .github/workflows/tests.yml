@@ -12,6 +12,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+    env:
+      MPLBACKEND: Agg
 
     steps:
       - name: Check out source code
