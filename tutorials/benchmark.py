@@ -12,7 +12,9 @@ from abspy import attach_to_log
 from abspy import VertexGroup
 from abspy import CellComplex
 
-logger = attach_to_log(filepath='benchmark.log')
+
+dir_tests = Path(__file__).parent
+logger = attach_to_log(filepath=dir_tests / 'output/benchmark.log')
 
 
 try:
@@ -83,12 +85,8 @@ def run_benchmark(data_dir='./data/*.vg', save_file=False):
 
     for filename in glob.glob(data_dir)[:]:
 
-        # # Fig4f and Fig4i are defected: having vertex groups of 2 points. failing at PCA calculation
-        # if 'Fig4f' in filename or 'Fig4i' in filename or not filename.endswith('.vg'):
-        #     continue
-
         vertex_group = VertexGroup(filepath=filename)
-        planes, bounds = np.array(vertex_group.planes), np.array(vertex_group.bounds)
+        planes, bounds = np.array(vertex_group.planes), np.array(vertex_group.aabbs)
 
         pipeline_adaptive_partition(planes, bounds, save_file, filename=Path(filename).with_suffix('.plm'))
         pipeline_exhaustive_partition(planes, bounds, save_file, filename=Path(filename).with_suffix('.plm'))
@@ -100,4 +98,4 @@ def run_benchmark(data_dir='./data/*.vg', save_file=False):
 
 
 if __name__ == '__main__':
-    run_benchmark(data_dir='./data/*.vg', save_file=False)
+    run_benchmark(data_dir=str(dir_tests / 'data/*.vg'), save_file=False)
