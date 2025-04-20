@@ -20,6 +20,7 @@ jobs:
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
+          miniconda-version: "latest"
           activate-environment: abspy
           environment-file: environment.yml
           auto-activate-base: false
