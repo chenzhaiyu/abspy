@@ -1,9 +1,8 @@
 name: abspy
 channels:
   - conda-forge
-  - defaults
 dependencies:
-  - defaults::python=3.11
+  - python=3.11
   - colorlog
   - matplotlib
   - networkx
