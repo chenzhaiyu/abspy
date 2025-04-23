@@ -9,11 +9,12 @@ Readme File
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_
 
-
-Links
+Tutorials
 ==============
 .. toctree::
-   abspy on Github <http://github.com/chenzhaiyu/abspy>
+   :maxdepth: 1
+
+   Tutorials <tutorials.md>
 
 Vertex Group
 ==============
@@ -28,3 +29,8 @@ API Reference
    :maxdepth: 1
 
    API Reference <api>
+
+Links
+==============
+.. toctree::
+   abspy on Github <http://github.com/chenzhaiyu/abspy>

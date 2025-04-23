@@ -99,4 +99,3 @@ def example_cell_complex_from_mesh():
 if __name__ == '__main__':
     example_cell_complex_from_planes()
     example_cell_complex_from_mesh()
-
