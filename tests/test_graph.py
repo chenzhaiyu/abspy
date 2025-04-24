@@ -1,4 +1,5 @@
 import pytest
+from unittest import mock
 import numpy as np
 import networkx as nx
 from pathlib import Path
@@ -206,3 +207,118 @@ def test_save_surface_obj(complex_with_graph, tmpdir):
     # Just check that paths exist (which they will now)
     assert mesh_path.exists()
     assert soup_path.exists()
+
+
+def test_graph_draw(simple_graph):
+    """Test that the graph drawing method works."""
+    graph = simple_graph
+    
+    # Mock the matplotlib pyplot module
+    with mock.patch('builtins.__import__', side_effect=lambda name, *args, **kwargs: 
+                   mock.MagicMock() if name == 'matplotlib.pyplot' else __import__(name, *args, **kwargs)):
+        
+        # Now mock networkx.draw which gets called inside the method
+        with mock.patch('networkx.draw'):
+            graph.draw()
+
+def test_uid_conversions():
+    """Test the UID conversion methods."""
+    # Create a graph with specific UIDs
+    graph = nx.Graph()
+    graph.add_nodes_from([1, 2, 3, 4])  # UIDs are integers
+    adj_graph = AdjacencyGraph(graph)
+    
+    # Test _uid_to_index
+    assert adj_graph._uid_to_index(1) == 0
+    assert adj_graph._uid_to_index(3) == 2
+    
+    # Test _index_to_uid
+    assert adj_graph._index_to_uid(0) == 1
+    assert adj_graph._index_to_uid(2) == 3
+    
+    # Test _sort_uid with string UIDs
+    string_graph = nx.Graph()
+    string_graph.add_nodes_from(['3', '1', '2'])
+    adj_graph.graph = string_graph
+    sorted_uids = adj_graph._sort_uid()
+    assert sorted_uids == [1, 2, 3]
+    
+    # Test to_indices
+    indices = adj_graph.to_indices([1, 3])
+    assert indices == [0, 2]
+    
+    # Test to_uids
+    uids = adj_graph.to_uids([0, 2])
+    assert uids == [1, 3]
+    
+    # Test to_dict
+    weights = [0.1, 0.2, 0.3, 0.4]
+    weights_dict = adj_graph.to_dict(weights)
+    assert weights_dict == {1: 0.1, 2: 0.2, 3: 0.3, 4: 0.4}
+
+def test_load_graph(tmpdir):
+    """Test loading a graph from a file."""
+    # Create a test adjlist file
+    graph_path = Path(tmpdir) / "test.adjlist"
+    with open(graph_path, 'w') as f:
+        f.write("1 2 3\n")  # Node 1 connected to 2 and 3
+        f.write("2 1 4\n")  # Node 2 connected to 1 and 4
+        f.write("3 1\n")    # Node 3 connected to 1
+        f.write("4 2\n")    # Node 4 connected to 2
+    
+    # Initialize a graph and load it
+    graph = AdjacencyGraph()
+    graph.load_graph(graph_path)
+    
+    # Check that the graph was loaded correctly
+    assert len(graph.graph.nodes) == 4
+    assert len(graph.graph.edges) == 3  # 1-2, 1-3, 2-4
+    assert graph.uid == [1, 2, 3, 4]
+    
+    # Test invalid file format
+    invalid_path = Path(tmpdir) / "test.invalid"
+    with open(invalid_path, 'w') as f:
+        f.write("Invalid format")
+    
+    with pytest.raises(NotImplementedError):
+        graph.load_graph(invalid_path)
+
+
+def test_surface_extraction_errors():
+    """Test error handling in surface extraction."""
+    graph = AdjacencyGraph(nx.Graph())
+    
+    # Test with no reachable cells
+    with mock.patch('abspy.graph.logger') as mock_logger:
+        graph.save_surface_obj("test.obj")
+        mock_logger.error.assert_called_with('no reachable cells. aborting')
+    
+    # Test with reachable but no unreachable cells
+    graph.reachable = [1, 2]
+    with mock.patch('abspy.graph.logger') as mock_logger:
+        graph.save_surface_obj("test.obj")
+        mock_logger.error.assert_called_with('no unreachable cells. aborting')
+    
+    # Test with reachable and unreachable but no cached interfaces or cells
+    graph.non_reachable = [3, 4]
+    with mock.patch('abspy.graph.logger') as mock_logger:
+        graph.save_surface_obj("test.obj")
+        mock_logger.error.assert_called_with('neither cached interfaces nor cells are available. aborting')
+    
+    # Test with invalid engine - need to provide cached interfaces to reach this condition
+    graph._cached_interfaces = {(1, 3): "mock_interface"}  # Add mock cached interface
+    with mock.patch('abspy.graph.logger') as mock_logger:
+        graph.save_surface_obj("test.obj", engine='invalid')
+        mock_logger.error.assert_called_with('engine can be "mesh" or "soup"')
+    
+def test_adjacency_graph_quiet():
+    """Test the quiet parameter for AdjacencyGraph."""
+    with mock.patch('abspy.graph.logger') as mock_logger:
+        # Test with quiet=True
+        graph = AdjacencyGraph(quiet=True)
+        assert mock_logger.disabled is True
+        
+        # Reset and test with quiet=False
+        mock_logger.disabled = False
+        graph = AdjacencyGraph(quiet=False)
+        assert mock_logger.disabled is False
