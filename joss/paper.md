@@ -40,9 +40,9 @@ The core features of *abspy* include:
 - **Surface reconstruction:** *abspy* identifies boundaries between interior and exterior cells to reconstruct polygonal surfaces using graph cuts, enabling the generation of surface models suitable for visualization and analysis.
 - **Ease of integration:** With a Pythonic interface, comprehensive documentation, and practical examples, *abspy* integrates smoothly into existing research workflows. Its data structures are designed for interoperability with tools such as NetworkX [@hagberg2008exploring] and Easy3D [@nan2021easy3d], facilitating further development.
 
-![An overview of representations supported by *abspy*: points with associated planar primitives, adaptive cell complex, reconstructed surface mesh, representative sample points.\label{fig:3d}](assets/3d.png){ width=95% }
-
 \autoref{fig:3d} summarizes the primary representations supported by *abspy*. The [documentation of *abspy*](https://abspy.readthedocs.io/) contains tutorials for the package, its API reference, file format specifications, etc.
+
+![An overview of representations supported by *abspy*: points with associated planar primitives, adaptive cell complex, reconstructed surface mesh, representative sample points.\label{fig:3d}](assets/3d.png){ width=95% }
 
 # Acknowledgements
 
