@@ -4,12 +4,12 @@ There are a few self-explanatory tutorials to show the functionality of `abspy`.
 
 ## Content
 
-- `tutorials/tutorial_primitive.py`: Extracting primitives from point clouds (`.vg` and `.bvg` files) and reference meshes.
-- `tutorials/tutorial_complex.py`: Creating cell complexes from planes and meshes.
-- `tutorials/tutorial_graph.py`: Simple example of working with adjacency graphs.
-- `tutorials/tutorial_combined.py`: Combining multiple operations into a workflow.
+- [`tutorials/tutorial_primitive.py`](https://github.com/chenzhaiyu/abspy/blob/main/tutorials/tutorial_primitive.py): Extracting primitives from point clouds (`.vg` and `.bvg` files) and reference meshes.
+- [`tutorials/tutorial_complex.py`](https://github.com/chenzhaiyu/abspy/blob/main/tutorials/tutorial_complex.py): Creating cell complexes from planes and meshes.
+- [`tutorials/tutorial_graph.py`](https://github.com/chenzhaiyu/abspy/blob/main/tutorials/tutorial_graph.py): Simple example of working with adjacency graphs.
+- [`tutorials/tutorial_combined.py`](https://github.com/chenzhaiyu/abspy/blob/main/tutorials/tutorial_combined.py): Combining multiple operations into a workflow.
 
-- `tutorials/data/`: Test data files used by the tutorials
+- [`tutorials/data/`](https://github.com/chenzhaiyu/abspy/tree/main/tutorials/data): Test data files used by the tutorials
     - `.vg/.bvg`: Vertex group files containing point cloud data and planar primitives. Supported software: [Mapple](https://github.com/LiangliangNan/Easy3D), [KSR](https://www-sop.inria.fr/members/Florent.Lafarge/code/KSR.zip), [PolyFit](https://3d.bk.tudelft.nl/liangliang/publications/2017/polyfit/polyfit.html).
     - `.obj/.ply`: 3D model files. Supported software: [Mapple](https://github.com/LiangliangNan/Easy3D), [MeshLab](https://www.meshlab.net/), [Blender](https://www.blender.org/)
     - `.adjlist`: Adjacency graph data. Supported software: [NetworkX](https://networkx.org/).
