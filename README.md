@@ -145,9 +145,14 @@ Please see the [Contribution Guide](https://github.com/chenzhaiyu/abspy/blob/mai
 
 ## FAQ
 
-* **How can I install *abspy* on Windows?**
+* **How can I install *abspy* on Windows / macOS?**
 
 For Windows users, you may need to build [SageMath from source](https://doc.sagemath.org/html/en/installation/source.html) or install all other dependencies into a [pre-built SageMath environment](https://doc.sagemath.org/html/en/installation/binary.html). Otherwise, virtualization with [docker](https://www.docker.com/) may come to the rescue.
+
+On macOS (x86), simply follow the standard installation. On Apple Silicon, prefix the create step with `CONDA_SUBDIR=osx-64`:
+```bash
+CONDA_SUBDIR=osx-64 conda env create -f environment.yml && conda activate abspy
+```
 
 * **How can I use *abspy* for surface reconstruction?**
 
