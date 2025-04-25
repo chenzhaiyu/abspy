@@ -246,7 +246,7 @@ class CellComplex:
 
         if prioritise_verticals:
             indices_vertical_planes = self._vertical_planes(slope_threshold=0.9)
-            bool_vertical_planes = np.in1d(indices_sorted_planes, indices_vertical_planes)
+            bool_vertical_planes = np.isin(indices_sorted_planes, indices_vertical_planes)
             indices_priority = np.append(indices_sorted_planes[bool_vertical_planes],
                                          indices_sorted_planes[np.invert(bool_vertical_planes)])
         else:
