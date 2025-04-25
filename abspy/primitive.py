@@ -387,7 +387,7 @@ class VertexGroup:
         if mode == 'LSA':
             # AX = B
             logger.warning('LSA introduces distortions when the plane crosses the origin')
-            param = np.linalg.lstsq(points, np.expand_dims(np.ones(len(points)), 1))
+            param = np.linalg.lstsq(points, np.expand_dims(np.ones(len(points)), 1), rcond=None)
             param = np.append(param[0], -1)
             obb = None
 
