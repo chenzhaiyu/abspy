@@ -11,7 +11,6 @@ def test_quiet_parameter():
     """Test the quiet parameter for suppressing log output."""
     # Create a temporary file
     with tempfile.NamedTemporaryFile(suffix='.vg', delete=False) as f:
-        f.write(b"# Simple vertex group file\n")
         f.write(b"num_points: 1\n")
         f.write(b"0.0 0.0 0.0\n")
         f.write(b"num_colors: 0\n")
