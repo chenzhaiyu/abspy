@@ -139,9 +139,17 @@ if len(cells_in_mesh):
 Please find the usage of *abspy* at [API reference](https://abspy.readthedocs.io/en/latest/api.html), with self-explanatory examples in [`./tutorials`](https://github.com/chenzhaiyu/abspy/blob/main/tutorials). 
 For the data structure of a `.vg`/`.bvg` file, please refer to [VertexGroup](https://abspy.readthedocs.io/en/latest/vertexgroup.html).
 
+## Testing *abspy*
+
+To run the test suite, first install [`pytest`](https://docs.pytest.org/en/stable/), and execute all tests:
+
+```bash
+pytest
+```
+
 ## Contributing to *abspy*
 
-Please see the [Contribution Guide](https://github.com/chenzhaiyu/abspy/blob/main/CONTRIBUTING.md) for more information.
+Please see the [Contribution Guide](https://github.com/chenzhaiyu/abspy/blob/main/CONTRIBUTING.md) for more information. 
 
 ## FAQ
 
