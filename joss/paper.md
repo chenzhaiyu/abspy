@@ -50,6 +50,6 @@ The core features of *abspy* include:
 
 # Acknowledgements
 
-I acknowledge the feedback provided by [Liangliang Nan](https://github.com/LiangliangNan), [Hugo Ledoux](https://github.com/hugoledoux), Yuqing Wang, and Qian Bai, which greatly contributed to the development of this package.
+We thank [Liangliang Nan](https://github.com/LiangliangNan), [Hugo Ledoux](https://github.com/hugoledoux), Yuqing Wang, Qian Bai, and the JOSS reviewers for bug fixes, testing, and insightful feedback, and acknowledge support from the TUM Georg Nemetschek Institute's AI4TWINNING project.
 
 # References
