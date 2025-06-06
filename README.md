@@ -185,3 +185,19 @@ If you use *abspy* in a scientific work, please consider citing the paper:
   author = {Zhaiyu Chen and Hugo Ledoux and Seyran Khademi and Liangliang Nan}
 }
 ```
+
+To cite the _abspy_ software package itself, please use:
+```bibtex
+@article{chen2025abspy,
+  title = {abspy: A Python package for 3D adaptive binary space partitioning and modeling},
+  journal = {Journal of Open Source Software},
+  volume = {10},
+  number = {110}, 
+  pages = {7946},
+  year = {2025},
+  doi = {10.21105/joss.07946},
+  url = {https://doi.org/10.21105/joss.07946},
+  publisher = {The Open Journal},
+  author = {Zhaiyu Chen},
+}
+```
