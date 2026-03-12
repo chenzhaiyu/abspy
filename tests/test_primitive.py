@@ -209,6 +209,22 @@ def test_fit_plane_with_lsa():
     assert abs(param[3] + 1) < 0.1  # d should be close to -1
 
 
+def test_fit_plane_accepts_array_like_input():
+    """Test fit_plane with plain Python list input."""
+    points = [
+        [0, 0, 1],
+        [1, 0, 1],
+        [0, 1, 1],
+        [1, 1, 1]
+    ]
+
+    param, obb = VertexGroup.fit_plane(points)
+    assert param is not None
+    assert obb is not None
+    assert abs(param[2]) > 0.9
+    assert abs(param[3] + 1) < 0.1
+
+
 def test_fit_plane_with_few_points():
     """Test fit_plane method with too few points."""
     # Only 2 points - not enough to fit a plane
@@ -222,6 +238,27 @@ def test_fit_plane_with_few_points():
     
     # Should return None when too few points
     assert result is None or result[0] is None
+
+
+def test_parse_group_parameters_without_trailing_newline():
+    """Test parsing group parameters when line has no trailing newline."""
+    vg = VertexGroup.__new__(VertexGroup)
+    vg.vgroup_ascii = [
+        'group_parameters: 1.0 0.0 0.0 0.123456',
+        'group_num_point: 3',
+        '0 1 2'
+    ]
+    vg.points = np.array([
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0]
+    ])
+    vg.refit = False
+    vg.global_group = False
+
+    planes, _, _, _, _ = vg.get_primitives()
+    assert planes.shape == (1, 4)
+    np.testing.assert_allclose(planes[0], [1.0, 0.0, 0.0, 0.123456])
 
 
 def test_get_points_with_custom_row():
