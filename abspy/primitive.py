@@ -249,7 +249,7 @@ class VertexGroup:
                 # empty group -> global bounds and no refit
                 if self.refit:
                     logger.warning('refit skipped for empty group')
-                param = np.fromstring(parameters[i][18:-1], sep=' ')
+                param = self._parse_group_parameters(parameters[i])
                 aabb = self._points_bound(self.points)
                 obb = aabb
 
@@ -258,7 +258,7 @@ class VertexGroup:
                 if self.refit:
                     param, obb = self.fit_plane(points, mode='PCA')
                 else:
-                    param = np.fromstring(parameters[i][18:-1], sep=' ')
+                    param = self._parse_group_parameters(parameters[i])
                     _, obb = self.fit_plane(points, mode='PCA')
                 aabb = self._points_bound(points)
 
@@ -291,6 +291,17 @@ class VertexGroup:
             Bounds (AABB) of the points
         """
         return np.array([np.amin(points, axis=0), np.amax(points, axis=0)])
+
+    @staticmethod
+    def _parse_group_parameters(line):
+        """
+        Parse group_parameters line from vg/bvg with or without trailing newline.
+        """
+        if line.startswith('group_parameters:'):
+            content = line[len('group_parameters:'):]
+        else:
+            content = line
+        return np.fromstring(content.strip(), sep=' ')
 
     def normalise_from_centroid_and_scale(self, centroid, scale, num=None):
         """
@@ -384,6 +395,8 @@ class VertexGroup:
         """
         assert mode == 'PCA' or mode == 'LSA'
 
+        points = np.asarray(points)
+
         if len(points) < 3:
             logger.warning('plane fitting skipped given #points={}'.format(len(points)))
             return None
@@ -401,7 +414,7 @@ class VertexGroup:
             pca.fit(points)
             eig_vec = pca.components_
             # equivalent to pca.transform(points) but avoids repeated input validation
-            points_trans = points @ eig_vec.T - (pca.mean_ @ eig_vec.T)
+            points_trans = (points - pca.mean_) @ eig_vec.T
             point_min = np.amin(points_trans, axis=0)
             point_max = np.amax(points_trans, axis=0)
             obb = np.array([[point_min[0], point_min[1], 0], [point_min[0], point_max[1], 0],
