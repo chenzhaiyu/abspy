@@ -189,15 +189,14 @@ class VertexGroup:
         as_float: (n, 3) float
             Point cloud
         """
-        pc_lines = []
-
-        for line in self.vgroup_ascii[row:]:
+        end_row = len(self.vgroup_ascii)
+        for i, line in enumerate(self.vgroup_ascii[row:], start=row):
             # stop reading when the 'num_colors' keyword is found
             if 'num_colors' in line:
+                end_row = i
                 break
-            pc_lines.append(line)
 
-        pc = np.fromstring(' '.join(pc_lines), sep=' ')
+        pc = np.fromstring(' '.join(self.vgroup_ascii[row:end_row]), sep=' ')
         return np.reshape(pc, (-1, 3))
 
     def get_primitives(self):
@@ -217,11 +216,16 @@ class VertexGroup:
         ungrouped_points: (u, 3) float
             Points that belong to no group
         """
-        is_primitive = [line.startswith('group_num_point') for line in self.vgroup_ascii]
-        is_parameter = [line.startswith('group_parameters') for line in self.vgroup_ascii]
+        primitive_line_indices = []
+        parameter_line_indices = []
+        for i, line in enumerate(self.vgroup_ascii):
+            if line.startswith('group_num_point'):
+                primitive_line_indices.append(i + 1)
+            elif line.startswith('group_parameters'):
+                parameter_line_indices.append(i)
 
-        primitives = [self.vgroup_ascii[line] for line in np.where(is_primitive)[0] + 1]  # lines of groups in the file
-        parameters = [self.vgroup_ascii[line] for line in np.where(is_parameter)[0]]
+        primitives = [self.vgroup_ascii[i] for i in primitive_line_indices]  # lines of groups in the file
+        parameters = [self.vgroup_ascii[i] for i in parameter_line_indices]
 
         # remove global group if there is one
         if self.global_group:
@@ -245,7 +249,7 @@ class VertexGroup:
                 # empty group -> global bounds and no refit
                 if self.refit:
                     logger.warning('refit skipped for empty group')
-                param = np.array([float(j) for j in parameters[i][18:-1].split()])
+                param = np.fromstring(parameters[i][18:-1], sep=' ')
                 aabb = self._points_bound(self.points)
                 obb = aabb
 
@@ -254,7 +258,7 @@ class VertexGroup:
                 if self.refit:
                     param, obb = self.fit_plane(points, mode='PCA')
                 else:
-                    param = np.array([float(j) for j in parameters[i][18:-1].split()])
+                    param = np.fromstring(parameters[i][18:-1], sep=' ')
                     _, obb = self.fit_plane(points, mode='PCA')
                 aabb = self._points_bound(points)
 
@@ -396,14 +400,15 @@ class VertexGroup:
             pca = PCA(n_components=3)
             pca.fit(points)
             eig_vec = pca.components_
-            points_trans = pca.transform(points)
+            # equivalent to pca.transform(points) but avoids repeated input validation
+            points_trans = points @ eig_vec.T - (pca.mean_ @ eig_vec.T)
             point_min = np.amin(points_trans, axis=0)
             point_max = np.amax(points_trans, axis=0)
             obb = np.array([[point_min[0], point_min[1], 0], [point_min[0], point_max[1], 0],
                             [point_max[0], point_max[1], 0], [point_max[0], point_min[1], 0]])
             obb = pca.inverse_transform(obb)
 
-            logger.debug('explained_variance_ratio: {}'.format(pca.explained_variance_ratio_))
+            logger.debug('explained_variance_ratio: %s', pca.explained_variance_ratio_)
 
             # normal vector of minimum variance
             normal = eig_vec[2, :]  # (a, b, c) normalized
