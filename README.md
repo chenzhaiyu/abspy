@@ -1,3 +1,5 @@
+
+
 <img src="https://raw.githubusercontent.com/chenzhaiyu/abspy/main/docs/source/_static/images/logo.png" width="480"/>
 
 -----------
@@ -116,7 +118,7 @@ adjacency_graph.save_surface_obj('tutorials/output/surface.obj', engine='mesh')
 The example loads a mesh to `VertexGroupReference`, partitions ambient space into a cell complex, identifies cells inside reference mesh, and visualizes the cells.
 
 ```python
-from abspy import VertexGroupReference
+from abspy import VertexGroupReference, CellComplex
 vertex_group_reference = VertexGroupReference(filepath='tutorials/data/test_mesh.ply')
 
 # initialise cell complex
